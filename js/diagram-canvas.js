@@ -72,12 +72,33 @@ const DiagramCanvas = (() => {
       newShape.x2 = dropX + 40; newShape.y2 = dropY;
     }
 
-    // Check collision before adding
-    let valid = true;
+    // Find if dropped inside an existing container (rectangle)
+    let parentId = null;
     for (const sh of shapes) {
-      if (Collision.checkCollision(newShape, sh)) {
-        valid = false;
-        break;
+      if (sh.type === 'rectangle' && sh.isContainer) {
+        // Simple hit test for container
+        if (dropX > sh.x && dropX < sh.x + sh.width && dropY > sh.y && dropY < sh.y + sh.height) {
+          parentId = sh.id;
+          break;
+        }
+      }
+    }
+
+    newShape.parentContainerId = parentId;
+    if (newShape.type === 'rectangle') {
+      newShape.paddingX = 10; // Default protection padding
+      newShape.paddingY = 10;
+      newShape.isContainer = true;
+    }
+
+    // Check collision before adding (if not contained)
+    let valid = true;
+    if (!parentId) {
+      for (const sh of shapes) {
+        if (Collision.checkCollision(newShape, sh)) {
+          valid = false;
+          break;
+        }
       }
     }
 
@@ -234,9 +255,35 @@ const DiagramCanvas = (() => {
 
     // Apply move/resize relative to snapshot
     if (activeHandle === 'move') {
+      let candidateX = snapshotShape.x + dx;
+      let candidateY = snapshotShape.y + dy;
+
+      if (shape.parentContainerId) {
+        const parent = getShapeById(shape.parentContainerId);
+        if (parent && shape.type === 'rectangle') {
+          // Use Milestone 7 formulas
+          const hw = shape.width / 2;
+          const hh = shape.height / 2;
+          const targetCX = candidateX + hw;
+          const targetCY = candidateY + hh;
+
+          // Recalculate Protection Padding is implicitly done by clamping logic variables
+          const clamped = window.clampChildRectangleCenterWithinParent(
+            targetCX, targetCY,
+            parent.x, parent.x + parent.width, // ParentInner boundaries (assuming visible for now)
+            parent.y + parent.height, parent.y, // SVG Y is inverted? Document says ParentInnerTopY > ParentInnerBottomY
+            hw, hh,
+            shape.paddingX, shape.paddingY
+          );
+          
+          candidateX = clamped.ClampedChildCenterX - hw;
+          candidateY = clamped.ClampedChildCenterY - hh;
+        }
+      }
+
       if (shape.type === 'rectangle') {
-        shape.x = snapshotShape.x + dx;
-        shape.y = snapshotShape.y + dy;
+        shape.x = candidateX;
+        shape.y = candidateY;
       } else if (shape.type === 'circle') {
         shape.cx = snapshotShape.cx + dx;
         shape.cy = snapshotShape.cy + dy;
