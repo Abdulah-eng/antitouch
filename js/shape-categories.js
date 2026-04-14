@@ -29,14 +29,26 @@ const ShapeCategories = (() => {
   }
 
   const _categories = [
-    { id: 'basic-shapes', name: 'Basic Shapes', icon: _svgRectangle('#6366f1'), displayOrder: 1 },
+    { id: 'basic-shapes',    name: 'Basic Shapes',    icon: _svgRectangle('#6366f1'), displayOrder: 1 },
+    { id: 'advanced-shapes', name: 'Advanced Shapes', icon: _svgRectangle('#3b82f6'), displayOrder: 2 },
+    { id: 'premium-shapes',  name: 'Premium Shapes',  icon: _svgRectangle('#a855f7'), displayOrder: 3 },
   ];
 
   const _itemsByCategory = {
     'basic-shapes': [
-      { id: 'shape-line',      type: 'line',      label: 'Line',      categoryId: 'basic-shapes', svgIcon: _svgLine() },
-      { id: 'shape-circle',    type: 'circle',    label: 'Circle',    categoryId: 'basic-shapes', svgIcon: _svgCircle() },
-      { id: 'shape-rectangle', type: 'rectangle', label: 'Rectangle', categoryId: 'basic-shapes', svgIcon: _svgRectangle() },
+      { id: 'shape-line',      type: 'line',      label: 'Line',      categoryId: 'basic-shapes', svgIcon: _svgLine('#10b981') },
+      { id: 'shape-circle',    type: 'circle',    label: 'Circle',    categoryId: 'basic-shapes', svgIcon: _svgCircle('#6366f1') },
+      { id: 'shape-rectangle', type: 'rectangle', label: 'Rectangle', categoryId: 'basic-shapes', svgIcon: _svgRectangle('#f59e0b') },
+    ],
+    'advanced-shapes': [
+      { id: 'adv-line',      type: 'line',      label: 'Advanced Line',  categoryId: 'advanced-shapes', svgIcon: _svgLine('#3b82f6') },
+      { id: 'adv-circle',    type: 'circle',    label: 'Advanced Circle',categoryId: 'advanced-shapes', svgIcon: _svgCircle('#06b6d4') },
+      { id: 'adv-rectangle', type: 'rectangle', label: 'Advanced Rect',  categoryId: 'advanced-shapes', svgIcon: _svgRectangle('#14b8a6') },
+    ],
+    'premium-shapes': [
+      { id: 'prem-line',      type: 'line',      label: 'Premium Line',  categoryId: 'premium-shapes', svgIcon: _svgLine('#a855f7') },
+      { id: 'prem-circle',    type: 'circle',    label: 'Premium Circle',categoryId: 'premium-shapes', svgIcon: _svgCircle('#ec4899') },
+      { id: 'prem-rectangle', type: 'rectangle', label: 'Premium Rect',  categoryId: 'premium-shapes', svgIcon: _svgRectangle('#f43f5e') },
     ]
   };
 
