@@ -24,7 +24,7 @@ const ShapeCategories = (() => {
 
   function _svgRectangle(c = '#f59e0b') {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="6" y="10" width="28" height="20" rx="2" fill="${c}" opacity="0.1" stroke="${c}" stroke-width="2"/>
+      <rect x="6" y="10" width="28" height="20" fill="${c}" opacity="0.1" stroke="${c}" stroke-width="2"/>
     </svg>`;
   }
 
@@ -44,6 +44,8 @@ const ShapeCategories = (() => {
       { id: 'adv-line',      type: 'line',      label: 'Advanced Line',  categoryId: 'advanced-shapes', svgIcon: _svgLine('#3b82f6') },
       { id: 'adv-circle',    type: 'circle',    label: 'Advanced Circle',categoryId: 'advanced-shapes', svgIcon: _svgCircle('#06b6d4') },
       { id: 'adv-rectangle', type: 'rectangle', label: 'Advanced Rect',  categoryId: 'advanced-shapes', svgIcon: _svgRectangle('#14b8a6') },
+      { id: 'shape-service', type: 'service',   label: 'Service',        categoryId: 'advanced-shapes', svgIcon: _svgRectangle('#3b82f6') },
+      { id: 'shape-db',      type: 'database',  label: 'Database',       categoryId: 'advanced-shapes', svgIcon: _svgCircle('#6366f1') },
     ],
     'premium-shapes': [
       { id: 'prem-line',      type: 'line',      label: 'Premium Line',  categoryId: 'premium-shapes', svgIcon: _svgLine('#a855f7') },

@@ -44,7 +44,7 @@ const Collision = (() => {
       inner.x + inner.width < outer.x + outer.width && 
       inner.y + inner.height < outer.y + outer.height;
 
-    // Allowed if one is completely inside the other (no borders touching)
+    // Milestone One Rule: Allowed if one is completely inside the other (no borders touching)
     if (contains(r1, r2) || contains(r2, r1)) return false; 
     
     return true; // borders cross or touch

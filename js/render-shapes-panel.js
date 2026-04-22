@@ -64,9 +64,6 @@ const RenderShapesPanel = (() => {
     // ── 6. Layout ──────────────────────────────────────────────
     ShapesPanelSplitter.updateShapesPanelLayout();
 
-    // ── 7. Canvas drop listener (future handoff target) ────────
-    // _attachCanvasDropListener(); // Disabled so diagram-canvas.js handles drops exclusively
-
     console.log('[RenderPanel] ShapesPanel rendered and ready');
   }
 
@@ -268,50 +265,6 @@ const RenderShapesPanel = (() => {
     SelectShapeCategory.setDefaultActiveShapeCategory();
   }
 
-  // ── Canvas drop listener (basic placed-item rendering) ────────
-
-  function _attachCanvasDropListener() {
-    document.addEventListener('libraryItemDroppedOnCanvas', (e) => {
-      const { payload, dropX, dropY } = e.detail || {};
-      if (!payload) return;
-
-      const canvas = document.getElementById('DiagramCanvas');
-      if (!canvas) return;
-
-      // Hide the empty state on first drop
-      const emptyState = document.getElementById('canvas-empty-state');
-      if (emptyState) emptyState.style.display = 'none';
-
-      // Create a simple placed item on the canvas
-      const placed = document.createElement('div');
-      placed.className = 'placed-canvas-item';
-      placed.style.position      = 'absolute';
-      placed.style.left          = (dropX - 30) + 'px';
-      placed.style.top           = (dropY - 30) + 'px';
-      placed.style.width         = '60px';
-      placed.style.height        = '70px';
-      placed.style.background    = 'var(--color-surface)';
-      placed.style.border        = '1px solid var(--color-border-light)';
-      placed.style.borderRadius  = 'var(--radius-md)';
-      placed.style.display       = 'flex';
-      placed.style.flexDirection = 'column';
-      placed.style.alignItems    = 'center';
-      placed.style.justifyContent = 'center';
-      placed.style.gap           = '3px';
-      placed.style.padding       = '6px 4px';
-      placed.style.boxShadow     = 'var(--shadow-md)';
-      placed.style.cursor        = 'move';
-      placed.style.zIndex        = '10';
-      placed.style.animation     = 'fadeIn 0.2s ease';
-      placed.innerHTML = `
-        <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${payload.svgIcon || ''}</div>
-        <span style="font-size:9px;color:var(--color-text-secondary);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${_esc(payload.itemLabel)}</span>`;
-      placed.title = payload.itemLabel;
-
-      canvas.appendChild(placed);
-    });
-  }
-
   // ── Helpers ───────────────────────────────────────────────────
 
   function _esc(str) {
@@ -321,10 +274,13 @@ const RenderShapesPanel = (() => {
     );
   }
 
-  // ── Self-bootstrap ────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', renderShapesPanel);
+  // ── Public API ────────────────────────────────────────────────
+  // NOTE: Self-bootstrapping DOMContentLoaded removed (BUG-01).
+  // renderShapesPanel is now called exclusively by main_v2.js
+  // after CanvasState and RenderCanvas are confirmed ready.
 
   return {
+    init: renderShapesPanel,       // canonical entry point for main_v2.js
     renderShapesPanel,
     renderShapesPanelHeader,
     renderShapesSearchInput,
