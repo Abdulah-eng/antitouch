@@ -82,14 +82,19 @@ const ParseDiagramJson = (() => {
    * via the (config.Canvas || config) pattern added to initializeCanvasState (BUG-18/20).
    */
   function _applyLoadedData(data) {
-    // initializeCanvasState now accepts the full { DiagramID, Canvas: {...}, Shapes: [...] }
-    // structure directly and unpacks it correctly.
     const ok = CanvasState.initializeCanvasState(data);
     if (!ok) {
       console.error('[ParseJSON] CanvasState.initializeCanvasState returned false');
       alert('Error: Failed to apply loaded diagram to canvas state.');
       return;
     }
+    // Fix 1: Record a baseline snapshot so Undo cannot go below the loaded state.
+    if (typeof HistoryManager !== 'undefined') {
+      HistoryManager.clear();
+      HistoryManager.recordState();
+    }
+    // Clear dirty flag — the freshly loaded diagram is the saved state.
+    if (typeof DirtyTracker !== 'undefined') DirtyTracker.markClean();
     RenderCanvas.render();
   }
 

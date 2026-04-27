@@ -62,9 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof HistoryManager !== 'undefined') HistoryManager.init();
 
   // ── 8.6. UI Enhancements ────────────────────────────────────────
-  if (typeof DropdownController !== 'undefined') DropdownController.init();
-  if (typeof PropertiesModal !== 'undefined') PropertiesModal.init();
+  if (typeof DropdownController    !== 'undefined') DropdownController.init();
+  if (typeof PropertiesModal       !== 'undefined') PropertiesModal.init();
   if (typeof ContextMenuController !== 'undefined') ContextMenuController.init();
+  if (typeof DirtyTracker          !== 'undefined') DirtyTracker.init();
 
   // ── 9. Toolbar ──────────────────────────────────────────────────
   _setupToolbarV2();
@@ -99,6 +100,7 @@ function _setupToolbarV2() {
         CanvasState.clearShapes();
         CanvasState.updateCanvas({ ViewportCenterX: 0, ViewportCenterY: 0, ZoomScale: 1.0 });
         if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
+        if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
         RenderCanvas.render();
       }
     };
@@ -134,12 +136,10 @@ function _setupToolbarV2() {
   if (btnUndo) btnUndo.onclick = () => { if (typeof HistoryManager !== 'undefined') HistoryManager.undo(); };
   if (btnRedo) btnRedo.onclick = () => { if (typeof HistoryManager !== 'undefined') HistoryManager.redo(); };
 
-  // 5. Advanced Persistence
-  if (btnOpenMulti && typeof MultiDiagramLoader !== 'undefined') {
-    btnOpenMulti.onclick = () => MultiDiagramLoader.openMultipleDiagramJsonFiles();
-  }
-  if (btnListDb && typeof MultiDiagramLoader !== 'undefined') {
-    btnListDb.onclick = () => MultiDiagramLoader.callListDiagramsApi();
+  // 5. Save to DB — prompt for name before saving (Fix 3)
+  const btnSaveDb = document.getElementById('btn-save-db');
+  if (btnSaveDb && typeof DiagramApi !== 'undefined') {
+    btnSaveDb.onclick = () => DiagramApi.promptAndSaveToDb();
   }
 
   // 6. Properties Modal

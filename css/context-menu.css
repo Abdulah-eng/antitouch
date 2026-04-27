@@ -43,3 +43,13 @@
   stroke-width: 2;
   fill: none;
 }
+
+/* Danger variant — used for Delete Shape */
+.context-menu-item--danger {
+  color: #f87171;
+}
+
+.context-menu-item--danger:hover {
+  background-color: #3b1f1f;
+  color: #fca5a5;
+}

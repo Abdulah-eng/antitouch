@@ -169,8 +169,9 @@ const DragHandler = (() => {
         });
         RenderCanvas.render();
       } else if (_hasMoved) {
-        // Successful, non-colliding move -> Record state
+        // Successful, non-colliding move -> Record state and mark dirty
         if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
+        if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
       }
     }
 

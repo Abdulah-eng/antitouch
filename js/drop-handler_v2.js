@@ -71,6 +71,8 @@ const DropHandler = (() => {
     
     // Record history snapshot after successful drop
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
+    // Mark diagram as having unsaved changes
+    if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
     
     RenderCanvas.render();
   }
