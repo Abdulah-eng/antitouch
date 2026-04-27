@@ -2,10 +2,9 @@
  * DiagramDbContext.cs
  * ====================
  * Entity Framework Core DbContext for the DiagramEngine.
- * Defines DbSets for Diagrams, DiagramCanvas, and DiagramShapes.
  *
- * BUG-12 fix: This DbContext replaces the stub repository pattern.
- * It is registered in Program.cs and injected into DiagramCanvasRepository.
+ * Milestone 3: Added ShapeHierarchyItems DbSet and seed data for the AWS hierarchy.
+ * Milestone 5: Updated DiagramShapes configuration for new M5 fields.
  */
 
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +17,10 @@ namespace Antitouch.Data
         public DiagramDbContext(DbContextOptions<DiagramDbContext> options)
             : base(options) { }
 
-        public DbSet<DiagramModel>       Diagrams       { get; set; } = null!;
-        public DbSet<DiagramCanvasModel> DiagramCanvases { get; set; } = null!;
-        public DbSet<DiagramShapeModel>  DiagramShapes   { get; set; } = null!;
+        public DbSet<DiagramModel>        Diagrams            { get; set; } = null!;
+        public DbSet<DiagramCanvasModel>  DiagramCanvases     { get; set; } = null!;
+        public DbSet<DiagramShapeModel>   DiagramShapes       { get; set; } = null!;
+        public DbSet<ShapeHierarchyModel> ShapeHierarchyItems { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,10 +34,8 @@ namespace Antitouch.Data
                 entity.Property(d => d.DiagramName).HasMaxLength(200).IsRequired();
                 entity.Property(d => d.CanvasID).HasMaxLength(64);
 
-                // Soft delete filter
                 entity.HasQueryFilter(d => !d.IsDeleted);
 
-                // Owned shapes collection
                 entity.HasMany(d => d.Shapes)
                       .WithOne(s => s.Diagram)
                       .HasForeignKey(s => s.DiagramID)
@@ -59,14 +57,11 @@ namespace Antitouch.Data
                 entity.Property(c => c.AxisOrientationY).HasMaxLength(100);
                 entity.Property(c => c.AxisOrientationZ).HasMaxLength(100);
 
-                // One-to-one relationship: one canvas per diagram
                 entity.HasIndex(c => c.DiagramID).IsUnique();
-
-                // Ignore in-memory navigation (Shapes lives on DiagramModel)
                 entity.Ignore(c => c.Shapes);
             });
 
-            // ── DiagramShapes ─────────────────────────────────────────
+            // ── DiagramShapes (M5: added HalfWidth, HalfHeight, padding ratios) ──
             modelBuilder.Entity<DiagramShapeModel>(entity =>
             {
                 entity.HasKey(s => s.ShapeID);
@@ -75,10 +70,69 @@ namespace Antitouch.Data
                 entity.Property(s => s.Type).HasMaxLength(100);
                 entity.Property(s => s.Label).HasMaxLength(500);
                 entity.Property(s => s.Color).HasMaxLength(50);
+                entity.Property(s => s.StrokeColor).HasMaxLength(50);
+                entity.Property(s => s.FillColor).HasMaxLength(50);
+                entity.Property(s => s.ParentShapeId).HasMaxLength(64);
                 entity.Property(s => s.SvgIcon);
 
-                // Soft delete filter
                 entity.HasQueryFilter(s => !s.IsDeleted);
+            });
+
+            // ── ShapeHierarchy (M3 seed) ──────────────────────────────
+            modelBuilder.Entity<ShapeHierarchyModel>(entity =>
+            {
+                entity.HasKey(h => h.Id);
+                entity.Property(h => h.Name).HasMaxLength(100).IsRequired();
+                entity.Property(h => h.DisplayName).HasMaxLength(200);
+                entity.Property(h => h.Category).HasMaxLength(100);
+                entity.Property(h => h.InvalidDropMessage).HasMaxLength(500);
+
+                // Self-referential FK: ParentId -> Id
+                entity.HasOne(h => h.Parent)
+                      .WithMany(h => h.AllowedParents)
+                      .HasForeignKey(h => h.ParentId)
+                      .IsRequired(false)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Seed data — AWS hierarchy
+                entity.HasData(
+                    new ShapeHierarchyModel
+                    {
+                        Id              = 1,
+                        Name            = "Region",
+                        DisplayName     = "AWS Region",
+                        Category        = "AWS",
+                        ParentId        = null,
+                        InvalidDropMessage = ""
+                    },
+                    new ShapeHierarchyModel
+                    {
+                        Id              = 2,
+                        Name            = "VPC",
+                        DisplayName     = "VPC",
+                        Category        = "AWS",
+                        ParentId        = 1, // parent = Region
+                        InvalidDropMessage = "Please drop VPC within a Region."
+                    },
+                    new ShapeHierarchyModel
+                    {
+                        Id              = 3,
+                        Name            = "AvailabilityZone",
+                        DisplayName     = "Availability Zone",
+                        Category        = "AWS",
+                        ParentId        = 2, // parent = VPC
+                        InvalidDropMessage = "Please drop the availability zone within a VPC. If VPC is not created, please create before creating availability zone."
+                    },
+                    new ShapeHierarchyModel
+                    {
+                        Id              = 4,
+                        Name            = "RouteTable",
+                        DisplayName     = "Route Table",
+                        Category        = "AWS",
+                        ParentId        = 2, // primary parent = VPC (also accepts AZ — enforced in JS)
+                        InvalidDropMessage = "Please drop the route table within a VPC or Availability Zone. If none exists, please create the required parent first."
+                    }
+                );
             });
         }
     }

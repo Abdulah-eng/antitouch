@@ -67,32 +67,61 @@ const RenderShapes = (() => {
   function _renderRect(g, shape, pos, zoom, isSelected) {
     const w = shape.Width  * zoom;
     const h = shape.Height * zoom;
+    const gv = (CanvasState.getGlobalVars() || {}).Rectangle || {};
+
+    // ── Protection Zone ───────────────────────────────────────────────
+    if (isSelected) {
+      const pxRatio = shape.ProtectionPaddingXRatio || gv.ProtectionPaddingXRatio || 0.2;
+      const pyRatio = shape.ProtectionPaddingYRatio || gv.ProtectionPaddingYRatio || 0.2;
+      const pw = w * (1 + pxRatio * 2);
+      const ph = h * (1 + pyRatio * 2);
+      
+      const protectRect = document.createElementNS(NS, 'rect');
+      protectRect.setAttribute('x', pos.x - pw / 2);
+      protectRect.setAttribute('y', pos.y - ph / 2);
+      protectRect.setAttribute('width', pw);
+      protectRect.setAttribute('height', ph);
+      protectRect.setAttribute('fill', gv.ProtectionPaddingColor || 'transparent');
+      protectRect.setAttribute('stroke', '#ef4444');
+      protectRect.setAttribute('stroke-width', 1 * zoom);
+      protectRect.setAttribute('stroke-dasharray', '8 4');
+      protectRect.setAttribute('stroke-opacity', '0.4');
+      g.appendChild(protectRect);
+    }
+
+    // ── Hover Zone ────────────────────────────────────────────────────
+    if (isSelected) {
+      const hxRatio = shape.HoverPaddingXRatio || gv.HoverPaddingXRatio || 0.1;
+      const hyRatio = shape.HoverPaddingYRatio || gv.HoverPaddingYRatio || 0.1;
+      const hw = w * (1 + hxRatio * 2);
+      const hh = h * (1 + hyRatio * 2);
+
+      const hoverRect = document.createElementNS(NS, 'rect');
+      hoverRect.setAttribute('x', pos.x - hw / 2);
+      hoverRect.setAttribute('y', pos.y - hh / 2);
+      hoverRect.setAttribute('width', hw);
+      hoverRect.setAttribute('height', hh);
+      hoverRect.setAttribute('fill', gv.HoverPaddingColor || 'transparent');
+      hoverRect.setAttribute('stroke', '#3b82f6');
+      hoverRect.setAttribute('stroke-width', 2 * zoom);
+      hoverRect.setAttribute('stroke-dasharray', '4 2');
+      hoverRect.setAttribute('stroke-opacity', '0.6');
+      g.appendChild(hoverRect);
+    }
+
+    // ── Main Rectangle ────────────────────────────────────────────────
     const rect = document.createElementNS(NS, 'rect');
     rect.setAttribute('x',            pos.x - w / 2);
     rect.setAttribute('y',            pos.y - h / 2);
     rect.setAttribute('width',        w);
     rect.setAttribute('height',       h);
-    rect.setAttribute('fill',         shape.FillColor || shape.Color || '#6366f1');
+    rect.setAttribute('fill',         shape.FillColor || shape.Color || gv.FillColor || '#6366f1');
     rect.setAttribute('fill-opacity', '1.0');
-    // FLAT/FRAMELESS: Razor sharp corners (Explicit 0)
     rect.setAttribute('rx',           0);
     rect.setAttribute('ry',           0);
-    rect.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#6366f1');
-    rect.setAttribute('stroke-width', 1.5 * zoom);
+    rect.setAttribute('stroke',       shape.StrokeColor || shape.Color || gv.LineColor || '#6366f1');
+    rect.setAttribute('stroke-width', (gv.LineWidth || 1.5) * zoom);
     g.appendChild(rect);
-
-    if (isSelected) {
-      const outline = document.createElementNS(NS, 'rect');
-      outline.setAttribute('x',      pos.x - w / 2 - 2);
-      outline.setAttribute('y',      pos.y - h / 2 - 2);
-      outline.setAttribute('width',  w + 4);
-      outline.setAttribute('height', h + 4);
-      outline.setAttribute('fill',   'none');
-      outline.setAttribute('stroke', '#3b82f6');
-      outline.setAttribute('stroke-width', 2 * zoom);
-      outline.setAttribute('stroke-dasharray', '5 3');
-      g.appendChild(outline);
-    }
   }
 
   function _renderCircle(g, shape, pos, zoom, isSelected) {
@@ -167,20 +196,33 @@ const RenderShapes = (() => {
     if (type === 'line') {
       const hw = (shape.Width / 2) * zoom;
       const hh = (shape.Height / 2) * zoom;
-      _createHandle(g, pos.x - hw, pos.y - hh, 'p1', 'pointer', zoom);
-      _createHandle(g, pos.x + hw, pos.y + hh, 'p2', 'pointer', zoom);
+      _createHandle(g, pos.x - hw, pos.y - hh, 'p1', 'pointer', zoom, 'line');
+      _createHandle(g, pos.x + hw, pos.y + hh, 'p2', 'pointer', zoom, 'line');
     } else {
       const w = shape.Width  * zoom;
       const h = shape.Height * zoom;
-      _createHandle(g, pos.x - w/2, pos.y - h/2, 'nw', 'nwse-resize', zoom);
-      _createHandle(g, pos.x + w/2, pos.y - h/2, 'ne', 'nesw-resize', zoom);
-      _createHandle(g, pos.x - w/2, pos.y + h/2, 'sw', 'nesw-resize', zoom);
-      _createHandle(g, pos.x + w/2, pos.y + h/2, 'se', 'nwse-resize', zoom);
+      // 8-point resize controls
+      _createHandle(g, pos.x - w/2, pos.y - h/2, 'nw', 'nwse-resize', zoom, type);
+      _createHandle(g, pos.x,       pos.y - h/2, 'n',  'ns-resize',   zoom, type);
+      _createHandle(g, pos.x + w/2, pos.y - h/2, 'ne', 'nesw-resize', zoom, type);
+      _createHandle(g, pos.x + w/2, pos.y,       'e',  'ew-resize',   zoom, type);
+      _createHandle(g, pos.x + w/2, pos.y + h/2, 'se', 'nwse-resize', zoom, type);
+      _createHandle(g, pos.x,       pos.y + h/2, 's',  'ns-resize',   zoom, type);
+      _createHandle(g, pos.x - w/2, pos.y + h/2, 'sw', 'nesw-resize', zoom, type);
+      _createHandle(g, pos.x - w/2, pos.y,       'w',  'ew-resize',   zoom, type);
     }
   }
 
-  function _createHandle(g, x, y, handleCode, cursor, zoom) {
+  function _createHandle(g, x, y, handleCode, cursor, zoom, type) {
     const size = 10 * zoom;
+    const isRect = type === 'rectangle';
+    const isCirc = type === 'circle' || type === 'ellipse';
+    const gvKey  = isRect ? 'Rectangle' : (isCirc ? 'Circle' : 'Rectangle'); // fallback to rect settings for lines
+    const gv     = (CanvasState.getGlobalVars() || {})[gvKey] || {};
+    
+    const defColor = gv.ResizeControlPointDefaultColor || 'transparent';
+    const hovColor = gv.ResizeControlPointHoverColor   || '#ffffff';
+    
     const h = document.createElementNS(NS, 'rect');
     h.setAttribute('x', x - size / 2);
     h.setAttribute('y', y - size / 2);
@@ -188,13 +230,23 @@ const RenderShapes = (() => {
     h.setAttribute('height', size);
     h.setAttribute('rx', 0);
     h.setAttribute('ry', 0);
-    h.setAttribute('fill', '#ffffff');
-    h.setAttribute('stroke', '#ef4444');
+    h.setAttribute('fill', defColor);
+    h.setAttribute('stroke', defColor === 'transparent' ? 'transparent' : '#ef4444');
     h.setAttribute('stroke-width', 1.5 * zoom);
     h.setAttribute('data-handle', handleCode);
     h.style.cursor = cursor;
-    // STABILITY: Ensure handles absorb all pointer events over geometry
     h.style.pointerEvents = 'all'; 
+    
+    // Hover effect via CSS (inline script simulation since we're manipulating DOM directly)
+    h.addEventListener('mouseenter', () => {
+      h.setAttribute('fill', hovColor);
+      h.setAttribute('stroke', '#ef4444');
+    });
+    h.addEventListener('mouseleave', () => {
+      h.setAttribute('fill', defColor);
+      h.setAttribute('stroke', defColor === 'transparent' ? 'transparent' : '#ef4444');
+    });
+    
     g.appendChild(h);
   }
 

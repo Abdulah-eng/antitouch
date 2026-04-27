@@ -85,7 +85,35 @@ const CanvasState = (() => {
         },
 
         // Shapes collection — loaded from JSON/DB or start empty
-        Shapes: config.Shapes || []
+        Shapes: config.Shapes || [],
+
+        // ── Milestone 3: Global Variables defaults ─────────────────
+        GlobalVars: config.GlobalVars || {
+          Circle: {
+            FillColor:                     '#6366f1',
+            LineColor:                     '#6366f1',
+            LineWidth:                     1.5,
+            HoverPaddingRadiusRatio:       0.1,
+            ProtectionPaddingRadiusRatio:  0.2,
+            HoverPaddingColor:             'transparent',
+            ProtectionPaddingColor:        'transparent',
+            ResizeControlPointDefaultColor:'transparent',
+            ResizeControlPointHoverColor:  '#ffffff'
+          },
+          Rectangle: {
+            FillColor:                     '#6366f1',
+            LineColor:                     '#6366f1',
+            LineWidth:                     1.5,
+            HoverPaddingXRatio:            0.1,
+            HoverPaddingYRatio:            0.1,
+            ProtectionPaddingXRatio:       0.2,
+            ProtectionPaddingYRatio:       0.2,
+            HoverPaddingColor:             'transparent',
+            ProtectionPaddingColor:        'transparent',
+            ResizeControlPointDefaultColor:'transparent',
+            ResizeControlPointHoverColor:  '#ffffff'
+          }
+        }
       };
 
       console.log('[CanvasState] State Initialized — Shapes:', activeDiagram.Shapes.length);
@@ -159,6 +187,38 @@ const CanvasState = (() => {
     });
   }
 
+  /**
+   * updateGlobalVars
+   * ─────────────────
+   * Milestone 3: Merge changes into activeDiagram.GlobalVars.Circle or .Rectangle.
+   * Enforces rule: ProtectionPaddingRatio > HoverPaddingRatio.
+   */
+  function updateGlobalVars(section, changes) {
+    if (!activeDiagram || !activeDiagram.GlobalVars) return;
+    const target = activeDiagram.GlobalVars[section];
+    if (!target) return;
+
+    Object.assign(target, changes);
+
+    // Enforce constraint: Protection > Hover
+    if (section === 'Rectangle') {
+      const gv = activeDiagram.GlobalVars.Rectangle;
+      if (gv.ProtectionPaddingXRatio <= gv.HoverPaddingXRatio)
+        gv.ProtectionPaddingXRatio = gv.HoverPaddingXRatio + 0.05;
+      if (gv.ProtectionPaddingYRatio <= gv.HoverPaddingYRatio)
+        gv.ProtectionPaddingYRatio = gv.HoverPaddingYRatio + 0.05;
+    }
+    if (section === 'Circle') {
+      const gv = activeDiagram.GlobalVars.Circle;
+      if (gv.ProtectionPaddingRadiusRatio <= gv.HoverPaddingRadiusRatio)
+        gv.ProtectionPaddingRadiusRatio = gv.HoverPaddingRadiusRatio + 0.05;
+    }
+  }
+
+  function getGlobalVars() {
+    return activeDiagram ? activeDiagram.GlobalVars : null;
+  }
+
   // ── Public API ────────────────────────────────────────────────
   return {
     initializeCanvasState,
@@ -173,6 +233,8 @@ const CanvasState = (() => {
     clearShapes,
     updateCanvas,
     updateDiagramMeta,   // BUG-10 fix
+    updateGlobalVars,    // M3
+    getGlobalVars,       // M3
   };
 
 })();
