@@ -52,6 +52,16 @@ const DropHandler = (() => {
       strokeColor = strokeMatch[1];
     }
 
+    let w = isLine ? 80 : (isCircle ? 80 : 100);
+    let h = isLine ? 0  : (isCircle ? 80 : 60);
+    const lType = payload.itemLabel.toLowerCase();
+
+    // Size specific M4 AWS shapes as containers
+    if (lType === 'region')            { w = 480; h = 360; fillColor = 'transparent'; strokeColor = '#f19c38'; }
+    if (lType === 'vpc')               { w = 400; h = 280; fillColor = 'transparent'; strokeColor = '#248814'; }
+    if (lType === 'availability zone') { w = 320; h = 200; fillColor = 'transparent'; strokeColor = '#007cbc'; }
+    if (lType === 'route table')       { w = 80;  h = 60;  fillColor = '#e2e8f0';     strokeColor = '#64748b'; }
+
     const newShape = {
       ShapeID: 'shape-' + Date.now(),
       DiagramID: CanvasState.getActiveDiagram()?.DiagramID ?? 'unsaved',
@@ -59,8 +69,8 @@ const DropHandler = (() => {
       Label: payload.itemLabel,
       WorldX: worldPos.x,
       WorldY: worldPos.y,
-      Width:  isLine ? 80 : (isCircle ? 80 : 100),
-      Height: isLine ? 0  : (isCircle ? 80 : 60),
+      Width:  w,
+      Height: h,
       Color: fillColor, // Legacy field
       StrokeColor: strokeColor,
       FillColor: fillColor,
