@@ -39,7 +39,7 @@ const RenderShapes = (() => {
     const g = document.createElementNS(NS, 'g');
     g.id            = shape.ShapeID;
     g.style.cursor  = 'move';
-    g.dataset.objId = shape.ShapeID;
+    g.setAttribute('data-obj-id', shape.ShapeID);
 
     const type = (shape.Type || 'rectangle').toLowerCase();
 

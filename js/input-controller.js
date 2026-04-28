@@ -61,8 +61,8 @@ const InputController = (() => {
       e.stopPropagation();
       e.preventDefault();
       
-      const shapeId = shapeEl.dataset.objId;
-      const handle  = handleEl.dataset.handle;
+      const shapeId = shapeEl.getAttribute('data-obj-id');
+      const handle  = handleEl.getAttribute('data-handle');
       
       console.log('[InputController] SELECTING HANDLE:', handle, 'on shape:', shapeId);
       CanvasState.selectShape(shapeId);
@@ -75,7 +75,7 @@ const InputController = (() => {
       e.stopPropagation();
       e.preventDefault();
 
-      const shapeId = shapeEl.dataset.objId;
+      const shapeId = shapeEl.getAttribute('data-obj-id');
       console.log('[InputController] Shape hit:', shapeId);
       
       CanvasState.selectShape(shapeId);
