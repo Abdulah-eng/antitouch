@@ -196,12 +196,12 @@ const RenderShapesPanel = (() => {
 
   function _buildCategoryItemEl(cat) {
     const div         = document.createElement('div');
-    div.className     = 'ShapeCategoryItem';
+    div.className     = 'ShapeCategoryItem' + (cat.isPlaceholder ? ' ShapeCategoryItem--placeholder' : '');
     div.dataset.categoryId = cat.id;
     div.setAttribute('role', 'option');
     div.setAttribute('aria-selected', 'false');
-    div.setAttribute('tabindex', '0');
-    div.title         = cat.name;
+    div.setAttribute('tabindex', cat.isPlaceholder ? '-1' : '0');
+    div.title         = cat.isPlaceholder ? (cat.placeholderMessage || 'Coming Soon') : cat.name;
 
     const iconWrap      = document.createElement('span');
     iconWrap.className  = 'category-icon';
@@ -212,13 +212,20 @@ const RenderShapesPanel = (() => {
     nameSpan.className   = 'category-name';
     nameSpan.textContent = cat.name;
 
-    const countBadge       = document.createElement('span');
-    countBadge.className   = 'category-count';
-    countBadge.textContent = ShapeCategories.getCategoryCount(cat.id);
-
     div.appendChild(iconWrap);
     div.appendChild(nameSpan);
-    div.appendChild(countBadge);
+
+    if (cat.isPlaceholder) {
+      const badge       = document.createElement('span');
+      badge.className   = 'category-soon-badge';
+      badge.textContent = 'Soon';
+      div.appendChild(badge);
+    } else {
+      const countBadge       = document.createElement('span');
+      countBadge.className   = 'category-count';
+      countBadge.textContent = ShapeCategories.getCategoryCount(cat.id);
+      div.appendChild(countBadge);
+    }
 
     return div;
   }

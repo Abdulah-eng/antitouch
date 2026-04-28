@@ -1,80 +1,116 @@
 /**
  * drop-handler_v2.js
  * ==================
- * Version M2.8 - Nuclear Stability Fix
+ * Version M4.0 — Cloud Shape Library + Parent Drop Validation
+ *
+ * M4.0 changes:
+ *   - Calls ParentDropValidator.validate() before creating any shape.
+ *   - Uses item definition (defaultWidth, defaultHeight, fillColor, strokeColor)
+ *     from ShapeCategories for precise sizing per shape type.
+ *   - Blocks placeholder "Coming Soon" items from being placed.
+ *   - Shows user-friendly toast/alert on validation failure.
  */
 
 'use strict';
 
 const DropHandler = (() => {
 
-  console.log('[DropHandler] MODULE LOADED - Version M2.8');
+  console.log('[DropHandler] MODULE LOADED - Version M4.0');
 
   function init() {
-    // BUG FIX: Only listen on window to avoid double-triggering across window/document buses
     window.addEventListener('libraryItemDroppedOnCanvas', onDrop);
   }
 
   function onDrop(e) {
     const { payload, dropX, dropY } = e.detail;
 
-    // Target the new specialized container ID
     const container = document.getElementById('MainCanvasViewport');
     if (!container) return;
-    
-    const rect = container.getBoundingClientRect();
 
-    // BUG-09 fix: clamp drop coordinates
+    const rect  = container.getBoundingClientRect();
     const safeX = Math.max(0, Math.min(dropX, rect.width));
     const safeY = Math.max(0, Math.min(dropY, rect.height));
 
-    const worldPos = ScreenToWorld.convert(
-      safeX,
-      safeY,
-      rect.width,
-      rect.height
-    );
+    const worldPos = ScreenToWorld.convert(safeX, safeY, rect.width, rect.height);
 
-    const isLine = payload.itemType.toLowerCase() === 'line';
-    const isCircle = payload.itemType.toLowerCase() === 'circle';
+    // ── M4: Retrieve full item definition from ShapeCategories ────
+    const itemDef = (typeof ShapeCategories !== 'undefined')
+      ? ShapeCategories.getItemByType(payload.itemType)
+      : null;
 
-    // Extract colors from SVG payload to maintain Milestone 1 colorful shapes
-    let strokeColor = '#6366f1'; 
-    let fillColor   = '#6366f1';
-    
-    const fillMatch = payload.svgIcon.match(/fill="([^"]+)"/);
-    if (fillMatch && fillMatch[1] !== 'none' && fillMatch[1] !== 'currentColor') {
-      fillColor = fillMatch[1];
-    }
-    
-    const strokeMatch = payload.svgIcon.match(/stroke="([^"]+)"/);
-    if (strokeMatch && strokeMatch[1] !== 'none' && strokeMatch[1] !== 'currentColor') {
-      strokeColor = strokeMatch[1];
+    // ── M4: Parent-hierarchy validation ───────────────────────────
+    if (typeof ParentDropValidator !== 'undefined' && itemDef) {
+      const result = ParentDropValidator.validate(itemDef, worldPos.x, worldPos.y);
+      if (!result.ok) {
+        _showDropError(result.reason);
+        return;  // Block the drop
+      }
     }
 
+    // ── Determine shape dimensions ────────────────────────────────
+    const typeLC  = payload.itemType.toLowerCase();
+    const isLine  = typeLC === 'line';
+    const isCircle= typeLC === 'circle' || typeLC === 'ellipse';
+
+    const w = itemDef?.defaultWidth  ?? (isLine ? 80 : isCircle ? 80 : 100);
+    const h = itemDef?.defaultHeight ?? (isLine ? 0  : isCircle ? 80 : 60);
+
+    // ── Determine colors ──────────────────────────────────────────
+    // Prefer itemDef colours; fall back to SVG attribute extraction
+    let strokeColor = itemDef?.strokeColor ?? '#6366f1';
+    let fillColor   = itemDef?.fillColor   ?? '#6366f1';
+
+    if (!itemDef?.strokeColor && !itemDef?.fillColor) {
+      const fillMatch   = payload.svgIcon.match(/fill="([^"]+)"/);
+      const strokeMatch = payload.svgIcon.match(/stroke="([^"]+)"/);
+      if (fillMatch   && fillMatch[1]   !== 'none' && fillMatch[1]   !== 'currentColor') fillColor   = fillMatch[1];
+      if (strokeMatch && strokeMatch[1] !== 'none' && strokeMatch[1] !== 'currentColor') strokeColor = strokeMatch[1];
+    }
+
+    // ── Build shape object ────────────────────────────────────────
     const newShape = {
-      ShapeID: 'shape-' + Date.now(),
-      DiagramID: CanvasState.getActiveDiagram()?.DiagramID ?? 'unsaved',
-      Type: payload.itemType,
-      Label: payload.itemLabel,
-      WorldX: worldPos.x,
-      WorldY: worldPos.y,
-      Width:  isLine ? 80 : (isCircle ? 80 : 100),
-      Height: isLine ? 0  : (isCircle ? 80 : 60),
-      Color: fillColor, // Legacy field
+      ShapeID:     'shape-' + Date.now(),
+      DiagramID:   CanvasState.getActiveDiagram()?.DiagramID ?? 'unsaved',
+      Type:        payload.itemType,
+      Label:       payload.itemLabel,
+      WorldX:      worldPos.x,
+      WorldY:      worldPos.y,
+      Width:       w,
+      Height:      h,
+      Color:       fillColor,
       StrokeColor: strokeColor,
-      FillColor: fillColor,
-      SvgIcon: payload.svgIcon
+      FillColor:   fillColor,
+      SvgIcon:     payload.svgIcon,
     };
 
     CanvasState.addShape(newShape);
-    
-    // Record history snapshot after successful drop
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
-    // Mark diagram as having unsaved changes
     if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
-    
     RenderCanvas.render();
+  }
+
+  // ── Error feedback ────────────────────────────────────────────────────────
+
+  /**
+   * _showDropError
+   * Shows a temporary on-canvas toast message explaining why a drop was blocked.
+   * Falls back to console.warn if the toast container is unavailable.
+   */
+  function _showDropError(message) {
+    console.warn('[DropHandler] Drop blocked:', message);
+
+    // Remove any existing toast
+    const old = document.getElementById('drop-error-toast');
+    if (old) old.remove();
+
+    const toast = document.createElement('div');
+    toast.id        = 'drop-error-toast';
+    toast.className = 'drop-error-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => toast.remove(), 3000);
   }
 
   return { init };

@@ -370,3 +370,50 @@ rect {
   ry: 0 !important;
 }
 
+/* ── M4: Coming Soon placeholder category style ─────────── */
+.ShapeCategoryItem--placeholder {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.ShapeCategoryItem--placeholder .category-name {
+  font-style: italic;
+}
+
+.category-soon-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #1e2433;
+  color: #64748b;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+
+/* ── M4: Drop error toast ───────────────────────────────── */
+.drop-error-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e1322;
+  border: 1px solid #f43f5e;
+  color: #fda4af;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 99999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  max-width: 480px;
+  text-align: center;
+  animation: toast-in 0.2s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

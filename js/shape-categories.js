@@ -1,83 +1,200 @@
 /**
  * shape-categories.js
  * ===================
- * Responsibility: Define static category and item data for basic shapes.
- * Provides loadShapeCategories and getCategoryItems functions.
- * Pure data layer — no DOM access, no state mutation.
+ * Milestone 4 — AWS / Azure / GCP Cloud Shape Library.
+ *
+ * Structure:
+ *   - AWS:   Region → VPC → Availability Zone → Route Table  (fully implemented)
+ *   - Azure: placeholder (Coming Soon items)
+ *   - GCP:   placeholder (Coming Soon items)
+ *
+ * Each item carries:
+ *   id, type (must match ShapeHierarchyModel.ShapeType), label,
+ *   categoryId, svgIcon, parentType (null = canvas root)
  */
 
 'use strict';
 
 const ShapeCategories = (() => {
 
-  function _svgLine(c = '#10b981') {
+  // ── SVG helpers ────────────────────────────────────────────────────────────
+
+  /** Dashed rectangle — used for AWS boundary shapes */
+  function _awsBoundaryRect(color, label) {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="6" y1="20" x2="34" y2="20" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="3" y="3" width="34" height="34" rx="2"
+            fill="${color}" fill-opacity="0.12"
+            stroke="${color}" stroke-width="1.8" stroke-dasharray="4 2"/>
+      <text x="20" y="26" text-anchor="middle" font-size="7"
+            fill="${color}" font-family="sans-serif" font-weight="600">${label}</text>
     </svg>`;
   }
 
-  function _svgCircle(c = '#6366f1') {
+  /** Solid rounded rect — used for inner resource shapes */
+  function _awsSolidRect(color, label) {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="14" fill="${c}" opacity="0.1" stroke="${c}" stroke-width="2"/>
+      <rect x="4" y="8" width="32" height="24" rx="3"
+            fill="${color}" fill-opacity="0.18"
+            stroke="${color}" stroke-width="1.8"/>
+      <text x="20" y="24" text-anchor="middle" font-size="6.5"
+            fill="${color}" font-family="sans-serif" font-weight="600">${label}</text>
     </svg>`;
   }
 
-  function _svgRectangle(c = '#f59e0b') {
+  /** Coming Soon placeholder */
+  function _placeholderRect(color) {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="6" y="10" width="28" height="20" fill="${c}" opacity="0.1" stroke="${c}" stroke-width="2"/>
+      <rect x="4" y="4" width="32" height="32" rx="4"
+            fill="${color}" fill-opacity="0.06"
+            stroke="${color}" stroke-width="1.4" stroke-dasharray="3 3"/>
+      <text x="20" y="24" text-anchor="middle" font-size="5.5"
+            fill="${color}" font-family="sans-serif">Soon</text>
     </svg>`;
   }
+
+  // ── Category definitions ──────────────────────────────────────────────────
 
   const _categories = [
-    { id: 'basic-shapes',    name: 'Basic Shapes',    icon: _svgRectangle('#6366f1'), displayOrder: 1 },
-    { id: 'advanced-shapes', name: 'Advanced Shapes', icon: _svgRectangle('#3b82f6'), displayOrder: 2 },
-    { id: 'premium-shapes',  name: 'Premium Shapes',  icon: _svgRectangle('#a855f7'), displayOrder: 3 },
+    {
+      id:           'aws',
+      name:         'AWS',
+      icon:         _awsBoundaryRect('#f59e0b', 'AWS'),
+      displayOrder: 1,
+      isPlaceholder: false,
+    },
+    {
+      id:           'azure',
+      name:         'Azure',
+      icon:         _placeholderRect('#0ea5e9'),
+      displayOrder: 2,
+      isPlaceholder: true,
+      placeholderMessage: 'Azure shapes — Coming Soon',
+    },
+    {
+      id:           'gcp',
+      name:         'GCP',
+      icon:         _placeholderRect('#10b981'),
+      displayOrder: 3,
+      isPlaceholder: true,
+      placeholderMessage: 'GCP shapes — Coming Soon',
+    },
   ];
 
+  // ── Items per category ────────────────────────────────────────────────────
+
   const _itemsByCategory = {
-    'basic-shapes': [
-      { id: 'shape-line',      type: 'line',      label: 'Line',      categoryId: 'basic-shapes', svgIcon: _svgLine('#10b981') },
-      { id: 'shape-circle',    type: 'circle',    label: 'Circle',    categoryId: 'basic-shapes', svgIcon: _svgCircle('#6366f1') },
-      { id: 'shape-rectangle', type: 'rectangle', label: 'Rectangle', categoryId: 'basic-shapes', svgIcon: _svgRectangle('#f59e0b') },
+
+    // ── AWS ────────────────────────────────────────────────────────
+    'aws': [
+      {
+        id:         'aws-region',
+        type:       'aws-region',
+        label:      'Region',
+        categoryId: 'aws',
+        parentType: null,           // drops directly on canvas root
+        svgIcon:    _awsBoundaryRect('#f59e0b', 'Region'),
+        defaultWidth:  360,
+        defaultHeight: 280,
+        fillColor:  '#f59e0b',
+        strokeColor:'#f59e0b',
+      },
+      {
+        id:         'aws-vpc',
+        type:       'aws-vpc',
+        label:      'VPC',
+        categoryId: 'aws',
+        parentType: 'aws-region',  // must be inside a Region
+        svgIcon:    _awsBoundaryRect('#6366f1', 'VPC'),
+        defaultWidth:  280,
+        defaultHeight: 220,
+        fillColor:  '#6366f1',
+        strokeColor:'#6366f1',
+      },
+      {
+        id:         'aws-availability-zone',
+        type:       'aws-availability-zone',
+        label:      'Availability Zone',
+        categoryId: 'aws',
+        parentType: 'aws-vpc',     // must be inside a VPC
+        svgIcon:    _awsBoundaryRect('#0ea5e9', 'AZ'),
+        defaultWidth:  200,
+        defaultHeight: 160,
+        fillColor:  '#0ea5e9',
+        strokeColor:'#0ea5e9',
+      },
+      {
+        id:         'aws-route-table',
+        type:       'aws-route-table',
+        label:      'Route Table',
+        categoryId: 'aws',
+        parentType: 'aws-availability-zone', // must be inside an AZ
+        svgIcon:    _awsSolidRect('#10b981', 'RT'),
+        defaultWidth:  140,
+        defaultHeight: 80,
+        fillColor:  '#10b981',
+        strokeColor:'#10b981',
+      },
     ],
-    'advanced-shapes': [
-      { id: 'adv-line',      type: 'line',      label: 'Advanced Line',  categoryId: 'advanced-shapes', svgIcon: _svgLine('#3b82f6') },
-      { id: 'adv-circle',    type: 'circle',    label: 'Advanced Circle',categoryId: 'advanced-shapes', svgIcon: _svgCircle('#06b6d4') },
-      { id: 'adv-rectangle', type: 'rectangle', label: 'Advanced Rect',  categoryId: 'advanced-shapes', svgIcon: _svgRectangle('#14b8a6') },
-      { id: 'shape-service', type: 'service',   label: 'Service',        categoryId: 'advanced-shapes', svgIcon: _svgRectangle('#3b82f6') },
-      { id: 'shape-db',      type: 'database',  label: 'Database',       categoryId: 'advanced-shapes', svgIcon: _svgCircle('#6366f1') },
+
+    // ── Azure (placeholder items) ────────────────────────────────
+    'azure': [
+      {
+        id:         'azure-coming-soon',
+        type:       'azure-placeholder',
+        label:      'Coming Soon',
+        categoryId: 'azure',
+        parentType: null,
+        isPlaceholder: true,
+        svgIcon:    _placeholderRect('#0ea5e9'),
+      },
     ],
-    'premium-shapes': [
-      { id: 'prem-line',      type: 'line',      label: 'Premium Line',  categoryId: 'premium-shapes', svgIcon: _svgLine('#a855f7') },
-      { id: 'prem-circle',    type: 'circle',    label: 'Premium Circle',categoryId: 'premium-shapes', svgIcon: _svgCircle('#ec4899') },
-      { id: 'prem-rectangle', type: 'rectangle', label: 'Premium Rect',  categoryId: 'premium-shapes', svgIcon: _svgRectangle('#f43f5e') },
-    ]
+
+    // ── GCP (placeholder items) ──────────────────────────────────
+    'gcp': [
+      {
+        id:         'gcp-coming-soon',
+        type:       'gcp-placeholder',
+        label:      'Coming Soon',
+        categoryId: 'gcp',
+        parentType: null,
+        isPlaceholder: true,
+        svgIcon:    _placeholderRect('#10b981'),
+      },
+    ],
   };
 
-  /** Returns all categories sorted by displayOrder */
+  // ── Public API ────────────────────────────────────────────────────────────
+
   function loadShapeCategories() {
     return [..._categories].sort((a, b) => a.displayOrder - b.displayOrder);
   }
 
-  /** Returns items for a specific category */
   function getCategoryItems(categoryId) {
     if (!categoryId || typeof categoryId !== 'string') return [];
     return (_itemsByCategory[categoryId] || []).slice();
   }
 
-  /** Returns a single category object by id, or null */
   function getCategoryById(categoryId) {
     return _categories.find(c => c.id === categoryId) || null;
   }
 
-  /** Returns the item count for a given category id */
   function getCategoryCount(categoryId) {
-    return (_itemsByCategory[categoryId] || []).length;
+    // Don't count Coming Soon placeholders in the badge
+    const items = (_itemsByCategory[categoryId] || []);
+    return items.filter(i => !i.isPlaceholder).length;
   }
 
-  /** Sorts any category array by displayOrder */
   function sortShapeCategories(categories) {
     return [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  /** Returns the item definition by its type string — used by drop validator */
+  function getItemByType(type) {
+    for (const items of Object.values(_itemsByCategory)) {
+      const found = items.find(i => i.type === type);
+      if (found) return found;
+    }
+    return null;
   }
 
   return {
@@ -86,6 +203,7 @@ const ShapeCategories = (() => {
     getCategoryById,
     getCategoryCount,
     sortShapeCategories,
+    getItemByType,
   };
 
 })();
