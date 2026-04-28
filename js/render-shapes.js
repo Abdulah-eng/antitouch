@@ -97,9 +97,8 @@ const RenderShapes = (() => {
       outline.setAttribute('width',  w + 6);
       outline.setAttribute('height', h + 6);
       outline.setAttribute('fill',   'none');
-      outline.setAttribute('stroke', '#3b82f6');
-      outline.setAttribute('stroke-width',     2 * zoom);
-      outline.setAttribute('stroke-dasharray', '6 3');
+      outline.setAttribute('stroke', '#f59e0b');
+      outline.setAttribute('stroke-width',     2.5 * zoom);
       outline.style.pointerEvents = 'none';
       g.appendChild(outline);
     } else if (isHovered) {
@@ -126,9 +125,9 @@ const RenderShapes = (() => {
     el.setAttribute('cy',           pos.y);
     el.setAttribute('rx',           rx);
     el.setAttribute('ry',           ry);
-    el.setAttribute('fill',         shape.FillColor   || shape.Color || '#10b981');
+    el.setAttribute('fill',         shape.FillColor   || shape.Color || '#6366f1');
     el.setAttribute('fill-opacity', '1.0');
-    el.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#10b981');
+    el.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#6366f1');
     el.setAttribute('stroke-width', 1.5 * zoom);
     g.appendChild(el);
 
@@ -139,9 +138,8 @@ const RenderShapes = (() => {
       outline.setAttribute('rx',   rx + 3);
       outline.setAttribute('ry',   ry + 3);
       outline.setAttribute('fill', 'none');
-      outline.setAttribute('stroke', '#3b82f6');
-      outline.setAttribute('stroke-width',     2 * zoom);
-      outline.setAttribute('stroke-dasharray', '6 3');
+      outline.setAttribute('stroke', '#f59e0b');
+      outline.setAttribute('stroke-width',     2.5 * zoom);
       outline.style.pointerEvents = 'none';
       g.appendChild(outline);
     } else if (isHovered) {

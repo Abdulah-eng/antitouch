@@ -89,8 +89,8 @@ const CanvasState = (() => {
             ProtectionPaddingYRatio:  gv.Rectangle?.ProtectionPaddingYRatio  ?? 0.20,
           },
           Circle: {
-            DefaultFillColor:             gv.Circle?.DefaultFillColor             || '#10b981',
-            DefaultStrokeColor:           gv.Circle?.DefaultStrokeColor           || '#10b981',
+            DefaultFillColor:             gv.Circle?.DefaultFillColor             || '#6366f1',
+            DefaultStrokeColor:           gv.Circle?.DefaultStrokeColor           || '#6366f1',
             ControlPointColorDefault:     gv.Circle?.ControlPointColorDefault     || '#ffffff',
             ControlPointColorActive:      gv.Circle?.ControlPointColorActive      || '#f59e0b',
             HoverPaddingRadiusRatio:      gv.Circle?.HoverPaddingRadiusRatio      ?? 0.10,
