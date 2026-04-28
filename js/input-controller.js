@@ -101,6 +101,15 @@ const InputController = (() => {
       PanHandler.onMouseMove(e);
       return;
     }
+
+    // M5: Hover detection — only when idle (no drag, no pan)
+    if (typeof HoverState !== 'undefined') {
+      const container = document.getElementById('MainCanvasViewport');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        HoverState.onMouseMove(e, rect.width, rect.height);
+      }
+    }
   }
 
   function onMouseUp(e) {

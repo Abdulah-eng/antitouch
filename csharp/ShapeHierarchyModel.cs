@@ -1,45 +1,52 @@
+/**
+ * ShapeHierarchyModel.cs
+ * ======================
+ * M3: Defines the allowed parent-child hierarchy for shape types.
+ * Supports AWS cloud shape containment rules (Region > VPC > AZ > RouteTable).
+ *
+ * Used by the drop validator on the frontend and optionally enforced server-side.
+ */
+
 using System.ComponentModel.DataAnnotations;
 
 namespace Antitouch.Models
 {
     /// <summary>
-    /// ShapeHierarchyModel
-    /// ====================
-    /// Milestone 3: Defines the parent-child hierarchy for cloud diagram shapes.
-    /// Each item has a single optional parent (NULL = root level).
-    ///
-    /// Hierarchy:
-    ///   Region           parent = NULL     (root)
-    ///   VPC              parent = Region
-    ///   Availability Zone parent = VPC
-    ///   Route Table      parent = VPC or Availability Zone
+    /// One record = "ShapeType X is allowed inside ShapeType Y".
+    /// A null AllowedParentType means the shape is a top-level (root) shape.
     /// </summary>
     public class ShapeHierarchyModel
     {
         [Key]
-        public int Id { get; set; }
+        [MaxLength(64)]
+        public string HierarchyID { get; set; } = Guid.NewGuid().ToString();
 
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;
-
-        [MaxLength(200)]
-        public string DisplayName { get; set; } = string.Empty;
-
-        [MaxLength(100)]
-        public string Category { get; set; } = "AWS"; // AWS | Azure | GCP
+        /// <summary>The child shape type label (e.g. "VPC").</summary>
+        [Required, MaxLength(100)]
+        public string ShapeType { get; set; } = string.Empty;
 
         /// <summary>
-        /// ParentId is NULL for root-level shapes (e.g. Region).
-        /// A shape may have at most one parent at a time.
+        /// The parent shape type that must contain this child.
+        /// Null = can be placed anywhere (top-level).
         /// </summary>
-        public int? ParentId { get; set; }
+        [MaxLength(100)]
+        public string? AllowedParentType { get; set; }
 
-        // Self-referential navigation
-        public ShapeHierarchyModel? Parent { get; set; }
-        public ICollection<ShapeHierarchyModel> AllowedParents { get; set; } = new List<ShapeHierarchyModel>();
+        /// <summary>Friendly display label for the UI.</summary>
+        [MaxLength(200)]
+        public string? DisplayLabel { get; set; }
 
+        /// <summary>Icon / SVG identifier for the shape in the library.</summary>
         [MaxLength(500)]
-        public string InvalidDropMessage { get; set; } = string.Empty;
+        public string? IconKey { get; set; }
+
+        /// <summary>Display order within the library panel.</summary>
+        public int SortOrder { get; set; } = 0;
+
+        /// <summary>Cloud provider grouping (AWS / Azure / GCP).</summary>
+        [MaxLength(50)]
+        public string Provider { get; set; } = "AWS";
+
+        public bool IsDeleted { get; set; } = false;
     }
 }

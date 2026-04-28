@@ -1,20 +1,21 @@
 /**
  * canvas-state_v2.js
  * ==================
- * Version M2.1 — Single source of truth for the active diagram.
+ * Version M3.0 — Single source of truth for the active diagram.
  *
  * BUG-18 fix: Added ViewportWidth, ViewportHeight to Canvas object.
  * BUG-20 fix: Added AxisOrientationZ, IsInfiniteX/Y/Z to Canvas object.
  * BUG-10 fix: Added updateDiagramMeta() for root-level diagram properties.
+ * M3     fix: Added GlobalVars (Rectangle + Circle) with padding + color defaults.
  */
 
 'use strict';
 
 const CanvasState = (() => {
 
-  console.log('[CanvasState] MODULE LOADED - Version M2.1');
+  console.log('[CanvasState] MODULE LOADED - Version M3.0');
 
-  let activeDiagram = null;
+  let activeDiagram   = null;
   let selectedShapeId = null;
 
   // ──────────────────────────────────────────────────────────────
@@ -22,20 +23,16 @@ const CanvasState = (() => {
    * initializeCanvasState
    * ─────────────────────
    * Trigger:     Application startup (main_v2.js), JSON/DB diagram reload
-   * Input:       Optional config object — can be flat or contain nested Canvas:{}
-   * Validation:  Falls back to CanvasConfig defaults for any missing field
-   * Processing:  Constructs the full in-memory activeDiagram model
+   * Input:       Optional config — flat or nested Canvas:{}
    * Output:      true on success
    * State Change: Replaces activeDiagram entirely
-   * Next Call:   RenderCanvas.init() / RenderCanvas.render()
-   * Error:       Returns false; caller must abort rendering
    */
   function initializeCanvasState(config = {}) {
     try {
-      // Support both flat config (legacy) and nested { Canvas: {...} } (JSON reload)
-      const c = config.Canvas || config;
+      const c  = config.Canvas || config;
+      const gv = config.GlobalVars || {};
 
-      selectedShapeId = null; // Reset selection on init
+      selectedShapeId = null;
 
       activeDiagram = {
         DiagramID:      config.DiagramID      || 'diagram-' + Date.now(),
@@ -50,70 +47,56 @@ const CanvasState = (() => {
           CoordinateSystemType: c.CoordinateSystemType || CanvasConfig.COORDINATE_SYSTEM,
           OriginDefinition:     c.OriginDefinition     || CanvasConfig.ORIGIN_DEFINITION,
 
-          // Axis orientations (BUG-20: AxisOrientationZ was missing)
           AxisOrientationX: c.AxisOrientationX || CanvasConfig.AXIS_ORIENTATION_X,
           AxisOrientationY: c.AxisOrientationY || CanvasConfig.AXIS_ORIENTATION_Y,
           AxisOrientationZ: c.AxisOrientationZ || CanvasConfig.AXIS_ORIENTATION_Z,
 
-          // Infinite canvas flags (BUG-20: all three were missing)
           IsInfiniteX: c.IsInfiniteX !== undefined ? c.IsInfiniteX : true,
           IsInfiniteY: c.IsInfiniteY !== undefined ? c.IsInfiniteY : true,
           IsInfiniteZ: c.IsInfiniteZ !== undefined ? c.IsInfiniteZ : true,
 
-          // Viewport
           ViewportCenterX: c.ViewportCenterX !== undefined ? c.ViewportCenterX : 0,
           ViewportCenterY: c.ViewportCenterY !== undefined ? c.ViewportCenterY : 0,
-          // BUG-18: ViewportWidth and ViewportHeight were missing from state
           ViewportWidth:   c.ViewportWidth  || CanvasConfig.DEFAULT_VIEWPORT_WIDTH,
           ViewportHeight:  c.ViewportHeight || CanvasConfig.DEFAULT_VIEWPORT_HEIGHT,
 
           ZoomScale: c.ZoomScale || 1.0,
 
-          // Grid
           GridVisible:  c.GridVisible  !== undefined ? c.GridVisible  : true,
           GridColor:    c.GridColor    || CanvasConfig.DEFAULT_GRID_COLOR,
           GridSpacingX: c.GridSpacingX || CanvasConfig.DEFAULT_GRID_SPACING,
           GridSpacingY: c.GridSpacingY || CanvasConfig.DEFAULT_GRID_SPACING,
 
-          // Visibility flags
           ShowOriginMarker: c.ShowOriginMarker !== undefined ? c.ShowOriginMarker : true,
           ShowAxes:         c.ShowAxes         !== undefined ? c.ShowAxes         : true,
 
-          // Interaction flags
           PanEnabled:  c.PanEnabled  !== undefined ? c.PanEnabled  : true,
           ZoomEnabled: c.ZoomEnabled !== undefined ? c.ZoomEnabled : true,
         },
 
-        // Shapes collection — loaded from JSON/DB or start empty
         Shapes: config.Shapes || [],
 
-        // ── Milestone 3: Global Variables defaults ─────────────────
-        GlobalVars: config.GlobalVars || {
-          Circle: {
-            FillColor:                     '#6366f1',
-            LineColor:                     '#6366f1',
-            LineWidth:                     1.5,
-            HoverPaddingRadiusRatio:       0.1,
-            ProtectionPaddingRadiusRatio:  0.2,
-            HoverPaddingColor:             'transparent',
-            ProtectionPaddingColor:        'transparent',
-            ResizeControlPointDefaultColor:'transparent',
-            ResizeControlPointHoverColor:  '#ffffff'
-          },
+        // ── M3: Global Variables for shape types ────────────────────
+        GlobalVars: {
           Rectangle: {
-            FillColor:                     '#6366f1',
-            LineColor:                     '#6366f1',
-            LineWidth:                     1.5,
-            HoverPaddingXRatio:            0.1,
-            HoverPaddingYRatio:            0.1,
-            ProtectionPaddingXRatio:       0.2,
-            ProtectionPaddingYRatio:       0.2,
-            HoverPaddingColor:             'transparent',
-            ProtectionPaddingColor:        'transparent',
-            ResizeControlPointDefaultColor:'transparent',
-            ResizeControlPointHoverColor:  '#ffffff'
-          }
-        }
+            DefaultFillColor:         gv.Rectangle?.DefaultFillColor         || '#6366f1',
+            DefaultStrokeColor:       gv.Rectangle?.DefaultStrokeColor       || '#6366f1',
+            ControlPointColorDefault: gv.Rectangle?.ControlPointColorDefault || '#ffffff',
+            ControlPointColorActive:  gv.Rectangle?.ControlPointColorActive  || '#f59e0b',
+            HoverPaddingXRatio:       gv.Rectangle?.HoverPaddingXRatio       ?? 0.10,
+            HoverPaddingYRatio:       gv.Rectangle?.HoverPaddingYRatio       ?? 0.10,
+            ProtectionPaddingXRatio:  gv.Rectangle?.ProtectionPaddingXRatio  ?? 0.20,
+            ProtectionPaddingYRatio:  gv.Rectangle?.ProtectionPaddingYRatio  ?? 0.20,
+          },
+          Circle: {
+            DefaultFillColor:             gv.Circle?.DefaultFillColor             || '#10b981',
+            DefaultStrokeColor:           gv.Circle?.DefaultStrokeColor           || '#10b981',
+            ControlPointColorDefault:     gv.Circle?.ControlPointColorDefault     || '#ffffff',
+            ControlPointColorActive:      gv.Circle?.ControlPointColorActive      || '#f59e0b',
+            HoverPaddingRadiusRatio:      gv.Circle?.HoverPaddingRadiusRatio      ?? 0.10,
+            ProtectionPaddingRadiusRatio: gv.Circle?.ProtectionPaddingRadiusRatio ?? 0.20,
+          },
+        },
       };
 
       console.log('[CanvasState] State Initialized — Shapes:', activeDiagram.Shapes.length);
@@ -125,16 +108,15 @@ const CanvasState = (() => {
     }
   }
 
-  // ── Getters ───────────────────────────────────────────────────
+  // ── Getters ─────────────────────────────────────────────────────
   function getActiveDiagram() { return activeDiagram; }
-  function getCanvas()        { return activeDiagram ? activeDiagram.Canvas : null; }
-  function getShapes()        { return activeDiagram ? activeDiagram.Shapes : []; }
+  function getCanvas()        { return activeDiagram ? activeDiagram.Canvas     : null; }
+  function getShapes()        { return activeDiagram ? activeDiagram.Shapes     : []; }
   function getSelectedId()    { return selectedShapeId; }
+  function getGlobalVars()    { return activeDiagram ? activeDiagram.GlobalVars : {}; }
 
-  // ── Shape mutations ───────────────────────────────────────────
-  function selectShape(id) {
-    selectedShapeId = id;
-  }
+  // ── Shape mutations ─────────────────────────────────────────────
+  function selectShape(id) { selectedShapeId = id; }
 
   function addShape(shape) {
     if (!activeDiagram) return;
@@ -157,10 +139,9 @@ const CanvasState = (() => {
     if (activeDiagram) activeDiagram.Shapes = [];
   }
 
-  // ── Canvas mutations ─────────────────────────────────────────
+  // ── Canvas mutations ────────────────────────────────────────────
   /**
    * updateCanvas
-   * ─────────────
    * Merges changes into activeDiagram.Canvas (viewport, colors, flags, etc.)
    */
   function updateCanvas(changes) {
@@ -169,15 +150,30 @@ const CanvasState = (() => {
   }
 
   /**
-   * updateDiagramMeta
-   * ─────────────────
-   * BUG-10 fix: Updates root-level diagram properties (DiagramID, DiagramName,
-   * DiagramVersion). These live on activeDiagram, NOT on activeDiagram.Canvas.
-   * Using updateCanvas() for these silently did nothing.
-   *
-   * Trigger:     After a successful DB save returns a new version/ID from the server
-   * Input:       changes object — keys must be DiagramID | DiagramName | DiagramVersion
-   * Output:      Root diagram fields updated in memory
+   * updateGlobalVars  (M3)
+   * ──────────────────────
+   * Merges shape-type global variable changes into activeDiagram.GlobalVars.
+   * Accepts: { Rectangle: {...} } and/or { Circle: {...} }
+   * Validation is done in PropertiesModal before calling this function.
+   */
+  function updateGlobalVars(changes) {
+    if (!activeDiagram) return;
+    if (!activeDiagram.GlobalVars) activeDiagram.GlobalVars = {};
+    if (changes.Rectangle) {
+      if (!activeDiagram.GlobalVars.Rectangle) activeDiagram.GlobalVars.Rectangle = {};
+      Object.assign(activeDiagram.GlobalVars.Rectangle, changes.Rectangle);
+    }
+    if (changes.Circle) {
+      if (!activeDiagram.GlobalVars.Circle) activeDiagram.GlobalVars.Circle = {};
+      Object.assign(activeDiagram.GlobalVars.Circle, changes.Circle);
+    }
+  }
+
+  /**
+   * updateDiagramMeta  (BUG-10 fix)
+   * ─────────────────────────────────
+   * Updates root-level diagram properties (DiagramID, DiagramName, DiagramVersion).
+   * These live on activeDiagram, NOT on activeDiagram.Canvas.
    */
   function updateDiagramMeta(changes) {
     if (!activeDiagram) return;
@@ -187,54 +183,22 @@ const CanvasState = (() => {
     });
   }
 
-  /**
-   * updateGlobalVars
-   * ─────────────────
-   * Milestone 3: Merge changes into activeDiagram.GlobalVars.Circle or .Rectangle.
-   * Enforces rule: ProtectionPaddingRatio > HoverPaddingRatio.
-   */
-  function updateGlobalVars(section, changes) {
-    if (!activeDiagram || !activeDiagram.GlobalVars) return;
-    const target = activeDiagram.GlobalVars[section];
-    if (!target) return;
-
-    Object.assign(target, changes);
-
-    // Enforce constraint: Protection > Hover
-    if (section === 'Rectangle') {
-      const gv = activeDiagram.GlobalVars.Rectangle;
-      if (gv.ProtectionPaddingXRatio <= gv.HoverPaddingXRatio)
-        gv.ProtectionPaddingXRatio = gv.HoverPaddingXRatio + 0.05;
-      if (gv.ProtectionPaddingYRatio <= gv.HoverPaddingYRatio)
-        gv.ProtectionPaddingYRatio = gv.HoverPaddingYRatio + 0.05;
-    }
-    if (section === 'Circle') {
-      const gv = activeDiagram.GlobalVars.Circle;
-      if (gv.ProtectionPaddingRadiusRatio <= gv.HoverPaddingRadiusRatio)
-        gv.ProtectionPaddingRadiusRatio = gv.HoverPaddingRadiusRatio + 0.05;
-    }
-  }
-
-  function getGlobalVars() {
-    return activeDiagram ? activeDiagram.GlobalVars : null;
-  }
-
-  // ── Public API ────────────────────────────────────────────────
+  // ── Public API ───────────────────────────────────────────────────
   return {
     initializeCanvasState,
     getActiveDiagram,
     getCanvas,
     getShapes,
     getSelectedId,
+    getGlobalVars,
     selectShape,
     addShape,
     updateShape,
     removeShape,
     clearShapes,
     updateCanvas,
-    updateDiagramMeta,   // BUG-10 fix
-    updateGlobalVars,    // M3
-    getGlobalVars,       // M3
+    updateGlobalVars,
+    updateDiagramMeta,
   };
 
 })();

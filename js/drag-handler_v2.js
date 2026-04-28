@@ -69,81 +69,40 @@ const DragHandler = (() => {
       if (type === 'line') {
         const hw = _shapeSnapshot.Width / 2;
         const hh = _shapeSnapshot.Height / 2;
-
-        // Correct World mapping for endpoints relative to mouse cursor
-        // Based on SVG render: p1_screen = (pos.x - hw, pos.y - hh)
-        // Which translates to World: p1_world = (WorldX - hw, WorldY + hh)
         const sP1X = _shapeSnapshot.WorldX - hw;
         const sP1Y = _shapeSnapshot.WorldY + hh;
         const sP2X = _shapeSnapshot.WorldX + hw;
         const sP2Y = _shapeSnapshot.WorldY - hh;
-
         if (_activeHandle === 'p1') {
-          // Point 1 moves exactly by dx, dy. Point 2 remains anchored perfectly.
-          const nP1X = sP1X + dx;
-          const nP1Y = sP1Y + dy;
-          changes.WorldX = (nP1X + sP2X) / 2;
-          changes.WorldY = (nP1Y + sP2Y) / 2;
-          changes.Width  = sP2X - nP1X;
-          changes.Height = nP1Y - sP2Y;
+          const nP1X = sP1X + dx; const nP1Y = sP1Y + dy;
+          changes.WorldX = (nP1X + sP2X) / 2; changes.WorldY = (nP1Y + sP2Y) / 2;
+          changes.Width  = sP2X - nP1X;        changes.Height = nP1Y - sP2Y;
         } else if (_activeHandle === 'p2') {
-          // Point 2 moves by dx, dy. Point 1 remains anchored perfectly.
-          const nP2X = sP2X + dx;
-          const nP2Y = sP2Y + dy;
-          changes.WorldX = (sP1X + nP2X) / 2;
-          changes.WorldY = (sP1Y + nP2Y) / 2;
-          changes.Width  = nP2X - sP1X;
-          changes.Height = sP1Y - nP2Y;
+          const nP2X = sP2X + dx; const nP2Y = sP2Y + dy;
+          changes.WorldX = (sP1X + nP2X) / 2; changes.WorldY = (sP1Y + nP2Y) / 2;
+          changes.Width  = nP2X - sP1X;        changes.Height = sP1Y - nP2Y;
         }
       } else if (type === 'circle' || type === 'ellipse') {
-        const dist = Math.sqrt((currentWorldPos.x - _shapeSnapshot.WorldX)**2 + (currentWorldPos.y - _shapeSnapshot.WorldY)**2);
+        const dist = Math.sqrt(
+          (currentWorldPos.x - _shapeSnapshot.WorldX) ** 2 +
+          (currentWorldPos.y - _shapeSnapshot.WorldY) ** 2
+        );
         changes.Width  = dist * 2;
         changes.Height = dist * 2;
       } else {
-        const sw = _shapeSnapshot.Width;
-        const sh = _shapeSnapshot.Height;
-        const sx = _shapeSnapshot.WorldX;
-        const sy = _shapeSnapshot.WorldY;
-
-        // Fixing the Screen-to-World vertical parity inversion.
-        // screen UP   = World dy > 0
-        // screen DOWN = World dy < 0
-        if (_activeHandle === 'se') {
-          changes.Width  = Math.max(10, sw + dx);
-          changes.Height = Math.max(10, sh - dy);
-          changes.WorldX = sx + dx / 2;
-          changes.WorldY = sy + dy / 2;
-        } else if (_activeHandle === 'nw') {
-          changes.Width  = Math.max(10, sw - dx);
-          changes.Height = Math.max(10, sh + dy);
-          changes.WorldX = sx + dx / 2;
-          changes.WorldY = sy + dy / 2;
-        } else if (_activeHandle === 'ne') {
-          changes.Width  = Math.max(10, sw + dx);
-          changes.Height = Math.max(10, sh + dy);
-          changes.WorldX = sx + dx / 2;
-          changes.WorldY = sy + dy / 2;
-        } else if (_activeHandle === 'sw') {
-          changes.Width  = Math.max(10, sw - dx);
-          changes.Height = Math.max(10, sh - dy);
-          changes.WorldX = sx + dx / 2;
-          changes.WorldY = sy + dy / 2;
-        } else if (_activeHandle === 'e') {
-          // East moves right/left, anchored to West edge
-          changes.Width  = Math.max(10, sw + dx);
-          changes.WorldX = sx + dx / 2;
-        } else if (_activeHandle === 'w') {
-          // West moves left/right, anchored to East edge
-          changes.Width  = Math.max(10, sw - dx);
-          changes.WorldX = sx + dx / 2;
-        } else if (_activeHandle === 'n') {
-          // North moves up/down, anchored to South edge (dy>0 is UP)
-          changes.Height = Math.max(10, sh + dy);
-          changes.WorldY = sy + dy / 2;
-        } else if (_activeHandle === 's') {
-          // South moves down/up, anchored to North edge (dy<0 is DOWN)
-          changes.Height = Math.max(10, sh - dy);
-          changes.WorldY = sy + dy / 2;
+        // Rectangle — 8 handles (M5: added N / S / E / W edge midpoints)
+        const sw = _shapeSnapshot.Width,  sh = _shapeSnapshot.Height;
+        const sx = _shapeSnapshot.WorldX, sy = _shapeSnapshot.WorldY;
+        // Screen-to-World vertical parity: screen DOWN = World dy < 0
+        switch (_activeHandle) {
+          case 'se': changes.Width = Math.max(10, sw+dx); changes.Height = Math.max(10, sh-dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
+          case 'nw': changes.Width = Math.max(10, sw-dx); changes.Height = Math.max(10, sh+dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
+          case 'ne': changes.Width = Math.max(10, sw+dx); changes.Height = Math.max(10, sh+dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
+          case 'sw': changes.Width = Math.max(10, sw-dx); changes.Height = Math.max(10, sh-dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
+          case 'n':  changes.Height = Math.max(10, sh+dy); changes.WorldY = sy+dy/2; break;
+          case 's':  changes.Height = Math.max(10, sh-dy); changes.WorldY = sy+dy/2; break;
+          case 'e':  changes.Width  = Math.max(10, sw+dx); changes.WorldX = sx+dx/2; break;
+          case 'w':  changes.Width  = Math.max(10, sw-dx); changes.WorldX = sx+dx/2; break;
         }
       }
     }
@@ -181,7 +140,11 @@ const DragHandler = (() => {
         });
         RenderCanvas.render();
       } else if (_hasMoved) {
-        // Successful, non-colliding move -> Record state and mark dirty
+        // Successful, non-colliding move -> Record state, mark dirty, save valid center
+        CanvasState.updateShape(_draggedShapeId, {
+          PreviousValidCenterX: finalShape.WorldX,
+          PreviousValidCenterY: finalShape.WorldY,
+        });
         if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
         if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
       }
@@ -196,20 +159,8 @@ const DragHandler = (() => {
 
   function _obj(s) {
     const t = (s.Type || 'rectangle').toLowerCase();
-    if (t === 'rectangle') {
-      const gv = (CanvasState.getGlobalVars() || {}).Rectangle || {};
-      const pxRatio = s.ProtectionPaddingXRatio || gv.ProtectionPaddingXRatio || 0.2;
-      const pyRatio = s.ProtectionPaddingYRatio || gv.ProtectionPaddingYRatio || 0.2;
-      const pw = s.Width * (1 + pxRatio * 2);
-      const ph = s.Height * (1 + pyRatio * 2);
-      return { type: 'rectangle', x: s.WorldX - pw/2, y: s.WorldY - ph/2, width: pw, height: ph };
-    }
-    if (t === 'circle' || t === 'ellipse') {
-      const gv = (CanvasState.getGlobalVars() || {}).Circle || {};
-      const pRatio = s.ProtectionPaddingRadiusRatio || gv.ProtectionPaddingRadiusRatio || 0.2;
-      const pr = (s.Width / 2) * (1 + pRatio);
-      return { type: 'circle', cx: s.WorldX, cy: s.WorldY, r: pr };
-    }
+    if (t === 'rectangle') return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
+    if (t === 'circle' || t === 'ellipse') return { type: 'circle', cx: s.WorldX, cy: s.WorldY, r: s.Width / 2 };
     if (t === 'line') return { 
       type: 'line', 
       x1: s.WorldX - s.Width/2, 
@@ -225,7 +176,7 @@ const DragHandler = (() => {
     if (h === 'ne' || h === 'sw') return 'nesw-resize';
     if (h === 'n'  || h === 's')  return 'ns-resize';
     if (h === 'e'  || h === 'w')  return 'ew-resize';
-    if (h === 'p1' || h === 'p2') return 'pointer';
+    if (h === 'p1' || h === 'p2') return 'crosshair';
     return 'move';
   }
 

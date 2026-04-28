@@ -52,16 +52,6 @@ const DropHandler = (() => {
       strokeColor = strokeMatch[1];
     }
 
-    let w = isLine ? 80 : (isCircle ? 80 : 100);
-    let h = isLine ? 0  : (isCircle ? 80 : 60);
-    const lType = payload.itemLabel.toLowerCase();
-
-    // Size specific M4 AWS shapes as containers
-    if (lType === 'region')            { w = 480; h = 360; fillColor = 'transparent'; strokeColor = '#f19c38'; }
-    if (lType === 'vpc')               { w = 400; h = 280; fillColor = 'transparent'; strokeColor = '#248814'; }
-    if (lType === 'availability zone') { w = 320; h = 200; fillColor = 'transparent'; strokeColor = '#007cbc'; }
-    if (lType === 'route table')       { w = 80;  h = 60;  fillColor = '#e2e8f0';     strokeColor = '#64748b'; }
-
     const newShape = {
       ShapeID: 'shape-' + Date.now(),
       DiagramID: CanvasState.getActiveDiagram()?.DiagramID ?? 'unsaved',
@@ -69,46 +59,13 @@ const DropHandler = (() => {
       Label: payload.itemLabel,
       WorldX: worldPos.x,
       WorldY: worldPos.y,
-      Width:  w,
-      Height: h,
+      Width:  isLine ? 80 : (isCircle ? 80 : 100),
+      Height: isLine ? 0  : (isCircle ? 80 : 60),
       Color: fillColor, // Legacy field
       StrokeColor: strokeColor,
       FillColor: fillColor,
-      SvgIcon: payload.svgIcon,
-      ParentShapeId: null // M4 containment
+      SvgIcon: payload.svgIcon
     };
-
-    // ── Milestone 4: Strict Hierarchy Validation ────────────────────────
-    const lType = payload.itemLabel.toLowerCase();
-    const shapes = CanvasState.getShapes();
-    
-    // AWS Hierarchy checks
-    if (lType === 'vpc') {
-      const parentRegion = shapes.find(s => s.Label.toLowerCase() === 'region');
-      if (!parentRegion) {
-        alert('Please drop VPC within a Region.');
-        return;
-      }
-      newShape.ParentShapeId = parentRegion.ShapeID;
-    } 
-    else if (lType === 'availability zone') {
-      const parentVpc = shapes.find(s => s.Label.toLowerCase() === 'vpc');
-      if (!parentVpc) {
-        alert('Please drop the availability zone within a VPC. If VPC is not created, please create before creating availability zone.');
-        return;
-      }
-      newShape.ParentShapeId = parentVpc.ShapeID;
-    }
-    else if (lType === 'route table') {
-      const parentAZ = shapes.find(s => s.Label.toLowerCase() === 'availability zone');
-      const parentVpc = shapes.find(s => s.Label.toLowerCase() === 'vpc');
-      if (!parentAZ && !parentVpc) {
-        alert('Please drop the route table within a VPC or Availability Zone. If none exists, please create the required parent first.');
-        return;
-      }
-      newShape.ParentShapeId = parentAZ ? parentAZ.ShapeID : parentVpc.ShapeID;
-    }
-    // ──────────────────────────────────────────────────────────────────
 
     CanvasState.addShape(newShape);
     
