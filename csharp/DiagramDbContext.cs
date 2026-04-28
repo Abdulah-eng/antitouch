@@ -18,10 +18,10 @@ namespace Antitouch.Data
         public DiagramDbContext(DbContextOptions<DiagramDbContext> options)
             : base(options) { }
 
-        public DbSet<DiagramModel>        Diagrams         { get; set; } = null!;
-        public DbSet<DiagramCanvasModel>  DiagramCanvases  { get; set; } = null!;
-        public DbSet<DiagramShapeModel>   DiagramShapes    { get; set; } = null!;
-        public DbSet<ShapeHierarchyModel> ShapeHierarchies { get; set; } = null!;
+        public DbSet<DiagramModel>          Diagrams          { get; set; } = null!;
+        public DbSet<DiagramCanvasModel>     DiagramCanvases   { get; set; } = null!;
+        public DbSet<DiagramShapeModel>      DiagramShapes     { get; set; } = null!;
+        public DbSet<ShapeHierarchyModel>    ShapeHierarchies  { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -81,17 +81,16 @@ namespace Antitouch.Data
                 // Soft delete filter
                 entity.HasQueryFilter(s => !s.IsDeleted);
             });
-            // ── ShapeHierarchy ────────────────────────────────────────
+            // ── ShapeHierarchies ──────────────────────────────────────────
             modelBuilder.Entity<ShapeHierarchyModel>(entity =>
             {
                 entity.HasKey(h => h.HierarchyID);
-                entity.Property(h => h.HierarchyID).HasMaxLength(64);
                 entity.Property(h => h.ShapeType).HasMaxLength(100).IsRequired();
-                entity.Property(h => h.AllowedParentType).HasMaxLength(100);
-                entity.Property(h => h.DisplayLabel).HasMaxLength(200);
-                entity.Property(h => h.IconKey).HasMaxLength(500);
-                entity.Property(h => h.Provider).HasMaxLength(50);
-                entity.HasQueryFilter(h => !h.IsDeleted);
+                entity.Property(h => h.Label).HasMaxLength(200);
+                entity.Property(h => h.ParentType).HasMaxLength(100);
+                entity.Property(h => h.CloudProvider).HasMaxLength(20);
+                // Only active entries participate in drop validation
+                entity.HasQueryFilter(h => h.IsActive);
             });
         }
     }

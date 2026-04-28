@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── 4. Input controller ─────────────────────────────────────────
   if (typeof InputController !== 'undefined') InputController.init();
 
+  // ── 4.5. Hover detection (M5) ───────────────────────────────────
+  if (typeof HoverManager !== 'undefined') HoverManager.init();
+
   // ── 5. Drop handler ─────────────────────────────────────────────
   if (typeof DropHandler !== 'undefined') DropHandler.init();
 

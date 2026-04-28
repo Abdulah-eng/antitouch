@@ -1,16 +1,16 @@
 /**
  * render-shapes.js
  * ================
- * Version M5.0 — Rectangle Interaction Engine
+ * Version M3.0 / M5.0
  *
- * M5 changes:
- * - Rectangles show 8 resize control points when hovered OR selected.
- * - Control point colors sourced from GlobalVars.Rectangle:
- *     transparent (default), white (hover/selected).
- * - Circles show 1 radial resize handle when hovered OR selected.
- * - PreviousValidCenterX/Y written to shape after every successful move.
- * - Selection outline is now a dashed blue ring for all primitives.
- * - Icon rendering unchanged.
+ * M5.0 changes:
+ *  - Resize handles now render on HOVER (not just selection).
+ *  - Handles use GlobalVars resizeControlPointDefaultColor (transparent by default)
+ *    and resizeControlPointHoverColor (white) for active/hover state.
+ *  - 8 control points for rectangles: NW, N, NE, E, SE, S, SW, W.
+ *  - 2 control points for circles: N, S (uniform radius drag).
+ *  - Hover outline ring rendered distinct from selection outline.
+ *  - Selection and hover states are independent — selected shape always shows handles.
  */
 
 'use strict';
@@ -23,45 +23,46 @@ const RenderShapes = (() => {
     const shapes     = CanvasState.getShapes();
     const zoom       = canvas.ZoomScale;
     const selectedId = CanvasState.getSelectedId();
-    const hoveredId  = (typeof HoverState !== 'undefined') ? HoverState.getHoveredId() : null;
-    const globalVars = CanvasState.getGlobalVars();
+    const hoveredId  = CanvasState.getHoveredId();
 
     shapes.forEach(shape => {
-      const pos       = WorldToScreen.convert(shape.WorldX, shape.WorldY, width, height);
+      const pos        = WorldToScreen.convert(shape.WorldX, shape.WorldY, width, height);
       const isSelected = (shape.ShapeID === selectedId);
-      const isHovered  = (shape.ShapeID === hoveredId);
-      const g = _buildShapeGroup(shape, pos, zoom, isSelected, isHovered, globalVars);
+      const isHovered  = (shape.ShapeID === hoveredId) && !isSelected;
+      const g          = _buildShapeGroup(shape, pos, zoom, isSelected, isHovered);
       svg.appendChild(g);
     });
   }
 
-  function _buildShapeGroup(shape, pos, zoom, isSelected, isHovered, globalVars) {
+  function _buildShapeGroup(shape, pos, zoom, isSelected, isHovered) {
     const g = document.createElementNS(NS, 'g');
     g.id            = shape.ShapeID;
     g.style.cursor  = 'move';
-    g.setAttribute('data-obj-id', shape.ShapeID);
+    g.dataset.objId = shape.ShapeID;
 
     const type = (shape.Type || 'rectangle').toLowerCase();
 
-    // 1. Geometry primitive
+    // 1. Geometry
     switch (type) {
       case 'line':
         _renderLine(g, shape, pos, zoom, isSelected);
         break;
       case 'circle':
       case 'ellipse':
-        _renderCircle(g, shape, pos, zoom, isSelected, isHovered, globalVars);
+        _renderCircle(g, shape, pos, zoom, isSelected, isHovered);
         break;
       default:
-        _renderRect(g, shape, pos, zoom, isSelected, isHovered, globalVars);
+        _renderRect(g, shape, pos, zoom, isSelected, isHovered);
     }
 
-    // 2. Icon (Nested SVG — only for non-primitive library shapes)
-    if (shape.SvgIcon) _renderIcon(g, shape, pos, zoom);
+    // 2. Icon (Nested SVG — non-primitives only)
+    if (shape.SvgIcon) {
+      _renderIcon(g, shape, pos, zoom);
+    }
 
-    // 3. Selection + Hover handles (Interaction Parity)
+    // 3. Resize Handles — show on hover OR selection
     if (isSelected || isHovered) {
-      _renderHandles(g, shape, pos, zoom, type, isSelected, isHovered, globalVars);
+      _renderHandles(g, shape, pos, zoom, type, isSelected);
     }
 
     // 4. Label
@@ -70,9 +71,8 @@ const RenderShapes = (() => {
     return g;
   }
 
-  // ── Primitives ────────────────────────────────────────────────────
-
-  function _renderRect(g, shape, pos, zoom, isSelected, isHovered, globalVars) {
+  // ── Rectangle ────────────────────────────────────────────────
+  function _renderRect(g, shape, pos, zoom, isSelected, isHovered) {
     const w = shape.Width  * zoom;
     const h = shape.Height * zoom;
 
@@ -81,42 +81,47 @@ const RenderShapes = (() => {
     rect.setAttribute('y',            pos.y - h / 2);
     rect.setAttribute('width',        w);
     rect.setAttribute('height',       h);
-    rect.setAttribute('fill',         shape.FillColor   || shape.Color || '#6366f1');
+    rect.setAttribute('fill',         shape.FillColor || shape.Color || '#6366f1');
     rect.setAttribute('fill-opacity', '1.0');
-    rect.setAttribute('rx', 0);
-    rect.setAttribute('ry', 0);
+    rect.setAttribute('rx',           0);
+    rect.setAttribute('ry',           0);
     rect.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#6366f1');
     rect.setAttribute('stroke-width', 1.5 * zoom);
     g.appendChild(rect);
 
-    // Selection dashed outline
-    if (isSelected) {
+    // Hover outline (subtle blue ring)
+    if (isHovered) {
       const outline = document.createElementNS(NS, 'rect');
       outline.setAttribute('x',      pos.x - w / 2 - 3);
       outline.setAttribute('y',      pos.y - h / 2 - 3);
       outline.setAttribute('width',  w + 6);
       outline.setAttribute('height', h + 6);
       outline.setAttribute('fill',   'none');
-      outline.setAttribute('stroke', '#f59e0b');
-      outline.setAttribute('stroke-width',     2.5 * zoom);
+      outline.setAttribute('stroke', '#93c5fd');
+      outline.setAttribute('stroke-width', 1.5 * zoom);
+      outline.setAttribute('stroke-dasharray', '4 3');
       outline.style.pointerEvents = 'none';
       g.appendChild(outline);
-    } else if (isHovered) {
-      // Subtle hover ring
-      const hring = document.createElementNS(NS, 'rect');
-      hring.setAttribute('x',      pos.x - w / 2 - 2);
-      hring.setAttribute('y',      pos.y - h / 2 - 2);
-      hring.setAttribute('width',  w + 4);
-      hring.setAttribute('height', h + 4);
-      hring.setAttribute('fill',   'none');
-      hring.setAttribute('stroke', 'rgba(255,255,255,0.35)');
-      hring.setAttribute('stroke-width', 1.5 * zoom);
-      hring.style.pointerEvents = 'none';
-      g.appendChild(hring);
+    }
+
+    // Selection outline (solid blue)
+    if (isSelected) {
+      const outline = document.createElementNS(NS, 'rect');
+      outline.setAttribute('x',      pos.x - w / 2 - 2);
+      outline.setAttribute('y',      pos.y - h / 2 - 2);
+      outline.setAttribute('width',  w + 4);
+      outline.setAttribute('height', h + 4);
+      outline.setAttribute('fill',   'none');
+      outline.setAttribute('stroke', '#3b82f6');
+      outline.setAttribute('stroke-width', 2 * zoom);
+      outline.setAttribute('stroke-dasharray', '5 3');
+      outline.style.pointerEvents = 'none';
+      g.appendChild(outline);
     }
   }
 
-  function _renderCircle(g, shape, pos, zoom, isSelected, isHovered, globalVars) {
+  // ── Circle / Ellipse ─────────────────────────────────────────
+  function _renderCircle(g, shape, pos, zoom, isSelected, isHovered) {
     const rx = (shape.Width  / 2) * zoom;
     const ry = (shape.Height / 2) * zoom;
 
@@ -125,53 +130,62 @@ const RenderShapes = (() => {
     el.setAttribute('cy',           pos.y);
     el.setAttribute('rx',           rx);
     el.setAttribute('ry',           ry);
-    el.setAttribute('fill',         shape.FillColor   || shape.Color || '#6366f1');
+    el.setAttribute('fill',         shape.FillColor || shape.Color || '#6366f1');
     el.setAttribute('fill-opacity', '1.0');
     el.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#6366f1');
     el.setAttribute('stroke-width', 1.5 * zoom);
     g.appendChild(el);
 
-    if (isSelected) {
+    if (isHovered) {
       const outline = document.createElementNS(NS, 'ellipse');
-      outline.setAttribute('cx',   pos.x);
-      outline.setAttribute('cy',   pos.y);
-      outline.setAttribute('rx',   rx + 3);
-      outline.setAttribute('ry',   ry + 3);
-      outline.setAttribute('fill', 'none');
-      outline.setAttribute('stroke', '#f59e0b');
-      outline.setAttribute('stroke-width',     2.5 * zoom);
+      outline.setAttribute('cx',     pos.x);
+      outline.setAttribute('cy',     pos.y);
+      outline.setAttribute('rx',     rx + 3);
+      outline.setAttribute('ry',     ry + 3);
+      outline.setAttribute('fill',   'none');
+      outline.setAttribute('stroke', '#93c5fd');
+      outline.setAttribute('stroke-width', 1.5 * zoom);
+      outline.setAttribute('stroke-dasharray', '4 3');
       outline.style.pointerEvents = 'none';
       g.appendChild(outline);
-    } else if (isHovered) {
-      const hring = document.createElementNS(NS, 'ellipse');
-      hring.setAttribute('cx',   pos.x);
-      hring.setAttribute('cy',   pos.y);
-      hring.setAttribute('rx',   rx + 2);
-      hring.setAttribute('ry',   ry + 2);
-      hring.setAttribute('fill', 'none');
-      hring.setAttribute('stroke', 'rgba(255,255,255,0.35)');
-      hring.setAttribute('stroke-width', 1.5 * zoom);
-      hring.style.pointerEvents = 'none';
-      g.appendChild(hring);
+    }
+
+    if (isSelected) {
+      const outline = document.createElementNS(NS, 'ellipse');
+      outline.setAttribute('cx',     pos.x);
+      outline.setAttribute('cy',     pos.y);
+      outline.setAttribute('rx',     rx + 2);
+      outline.setAttribute('ry',     ry + 2);
+      outline.setAttribute('fill',   'none');
+      outline.setAttribute('stroke', '#ef4444');
+      outline.setAttribute('stroke-width', 1.5 * zoom);
+      outline.setAttribute('stroke-dasharray', '4 2');
+      outline.style.pointerEvents = 'none';
+      g.appendChild(outline);
     }
   }
 
+  // ── Line ─────────────────────────────────────────────────────
   function _renderLine(g, shape, pos, zoom, isSelected) {
     const hw = (shape.Width  / 2) * zoom;
     const hh = (shape.Height / 2) * zoom;
 
     const line = document.createElementNS(NS, 'line');
-    line.setAttribute('x1', pos.x - hw);  line.setAttribute('y1', pos.y - hh);
-    line.setAttribute('x2', pos.x + hw);  line.setAttribute('y2', pos.y + hh);
-    line.setAttribute('stroke',         shape.StrokeColor || shape.Color || '#10b981');
-    line.setAttribute('stroke-width',   2.5 * zoom);
-    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('x1',            pos.x - hw);
+    line.setAttribute('y1',            pos.y - hh);
+    line.setAttribute('x2',            pos.x + hw);
+    line.setAttribute('y2',            pos.y + hh);
+    line.setAttribute('stroke',        shape.StrokeColor || shape.Color || '#10b981');
+    line.setAttribute('stroke-width',  2.5 * zoom);
+    line.setAttribute('stroke-linecap','round');
     g.appendChild(line);
 
     if (isSelected) {
       const outline = document.createElementNS(NS, 'line');
-      outline.setAttribute('x1', pos.x - hw);  outline.setAttribute('y1', pos.y - hh);
-      outline.setAttribute('x2', pos.x + hw);  outline.setAttribute('y2', pos.y + hh);
+      outline.setAttribute('x1', pos.x - hw);
+      outline.setAttribute('y1', pos.y - hh);
+      outline.setAttribute('x2', pos.x + hw);
+      outline.setAttribute('y2', pos.y + hh);
       outline.setAttribute('stroke',         '#3b82f6');
       outline.setAttribute('stroke-width',   4.5 * zoom);
       outline.setAttribute('stroke-opacity', '0.4');
@@ -180,107 +194,106 @@ const RenderShapes = (() => {
       g.appendChild(outline);
     }
 
-    // Wide invisible hit area
+    // Wide transparent hit area
     const hitArea = document.createElementNS(NS, 'line');
-    hitArea.setAttribute('x1', pos.x - hw);  hitArea.setAttribute('y1', pos.y - hh);
-    hitArea.setAttribute('x2', pos.x + hw);  hitArea.setAttribute('y2', pos.y + hh);
+    hitArea.setAttribute('x1',           pos.x - hw);
+    hitArea.setAttribute('y1',           pos.y - hh);
+    hitArea.setAttribute('x2',           pos.x + hw);
+    hitArea.setAttribute('y2',           pos.y + hh);
     hitArea.setAttribute('stroke',       'transparent');
     hitArea.setAttribute('stroke-width', 24 * zoom);
     hitArea.style.pointerEvents = 'stroke';
     g.appendChild(hitArea);
   }
 
-  // ── Handles ───────────────────────────────────────────────────────
+  // ── Resize / Endpoint Handles ────────────────────────────────
+  /**
+   * isSelected controls control point color:
+   *   selected or hovered → use resizeControlPointHoverColor (white)
+   *   hover only         → also show white (so hovering reveals the points)
+   *   default (invisible)→ use resizeControlPointDefaultColor (transparent)
+   *
+   * For rectangles: 8 handles (NW, N, NE, E, SE, S, SW, W).
+   * For circles:    2 handles (N, S) — radius is uniform.
+   * For lines:      2 endpoint handles (P1, P2).
+   */
+  function _renderHandles(g, shape, pos, zoom, type, isSelected) {
+    const gv = CanvasState.getGlobalVars();
 
-  function _renderHandles(g, shape, pos, zoom, type, isSelected, isHovered, globalVars) {
     if (type === 'line') {
-      // Lines: two endpoint handles only (always shown when selected)
-      if (!isSelected) return;
       const hw = (shape.Width  / 2) * zoom;
       const hh = (shape.Height / 2) * zoom;
-      _createHandle(g, pos.x - hw, pos.y - hh, 'p1', 'pointer', zoom, '#ffffff', '#ef4444');
-      _createHandle(g, pos.x + hw, pos.y + hh, 'p2', 'pointer', zoom, '#ffffff', '#ef4444');
+      _createHandle(g, pos.x - hw, pos.y - hh, 'p1', 'pointer',  zoom, true);
+      _createHandle(g, pos.x + hw, pos.y + hh, 'p2', 'pointer',  zoom, true);
       return;
     }
 
-    // Rectangle: 8 control points
-    if (type === 'rectangle' || type === 'rect' || type !== 'circle' && type !== 'ellipse') {
-      const gv  = (globalVars && globalVars.Rectangle) || {};
-      // Default: transparent; hover/selected: white
-      const cpColor = (isSelected || isHovered)
-        ? (gv.ControlPointColorActive  || '#f59e0b')
-        : (gv.ControlPointColorDefault || 'transparent');
+    const isCircle = (type === 'circle' || type === 'ellipse');
+    const gvType   = isCircle ? gv.circle : gv.rectangle;
+    // Show white handle colour when hovered or selected; transparent when just hovered-but-not-selected
+    // Both states (isHovered for hover-only, isSelected for selected) show handle colour
+    const activeFill = gvType.resizeControlPointHoverColor;
 
+    if (isCircle) {
+      const ry = (shape.Height / 2) * zoom;
+      _createHandle(g, pos.x,        pos.y - ry, 'n',  'ns-resize',   zoom, isSelected, activeFill);
+      _createHandle(g, pos.x,        pos.y + ry, 's',  'ns-resize',   zoom, isSelected, activeFill);
+    } else {
       const w = shape.Width  * zoom;
       const h = shape.Height * zoom;
-      const cx = pos.x, cy = pos.y;
-
-      // 4 corners
-      _createHandle(g, cx - w/2, cy - h/2, 'nw', 'nwse-resize', zoom, cpColor, '#475569');
-      _createHandle(g, cx + w/2, cy - h/2, 'ne', 'nesw-resize', zoom, cpColor, '#475569');
-      _createHandle(g, cx - w/2, cy + h/2, 'sw', 'nesw-resize', zoom, cpColor, '#475569');
-      _createHandle(g, cx + w/2, cy + h/2, 'se', 'nwse-resize', zoom, cpColor, '#475569');
-      // 4 edge midpoints
-      _createHandle(g, cx,       cy - h/2, 'n',  'ns-resize',   zoom, cpColor, '#475569');
-      _createHandle(g, cx,       cy + h/2, 's',  'ns-resize',   zoom, cpColor, '#475569');
-      _createHandle(g, cx - w/2, cy,       'w',  'ew-resize',   zoom, cpColor, '#475569');
-      _createHandle(g, cx + w/2, cy,       'e',  'ew-resize',   zoom, cpColor, '#475569');
-      return;
-    }
-
-    // Circle: 1 radial handle (east edge)
-    if (type === 'circle' || type === 'ellipse') {
-      const gv      = (globalVars && globalVars.Circle) || {};
-      const cpColor = (isSelected || isHovered)
-        ? (gv.ControlPointColorActive  || '#f59e0b')
-        : (gv.ControlPointColorDefault || 'transparent');
-      const rx = (shape.Width / 2) * zoom;
-      _createHandle(g, pos.x + rx, pos.y, 'se', 'nwse-resize', zoom, cpColor, '#475569');
+      const l = pos.x - w / 2, r = pos.x + w / 2, mid = pos.x;
+      const t = pos.y - h / 2, b = pos.y + h / 2, midy = pos.y;
+      _createHandle(g, l,   t,    'nw', 'nwse-resize', zoom, isSelected, activeFill);
+      _createHandle(g, mid, t,    'n',  'ns-resize',   zoom, isSelected, activeFill);
+      _createHandle(g, r,   t,    'ne', 'nesw-resize', zoom, isSelected, activeFill);
+      _createHandle(g, r,   midy, 'e',  'ew-resize',   zoom, isSelected, activeFill);
+      _createHandle(g, r,   b,    'se', 'nwse-resize', zoom, isSelected, activeFill);
+      _createHandle(g, mid, b,    's',  'ns-resize',   zoom, isSelected, activeFill);
+      _createHandle(g, l,   b,    'sw', 'nesw-resize', zoom, isSelected, activeFill);
+      _createHandle(g, l,   midy, 'w',  'ew-resize',   zoom, isSelected, activeFill);
     }
   }
 
-  function _createHandle(g, x, y, handleCode, cursor, zoom, fillColor, strokeColor) {
+  function _createHandle(g, x, y, handleCode, cursor, zoom, isActive, activeFill = '#ffffff') {
     const size = 9 * zoom;
-    const h = document.createElementNS(NS, 'rect');
+    const h    = document.createElementNS(NS, 'rect');
     h.setAttribute('x',      x - size / 2);
     h.setAttribute('y',      y - size / 2);
     h.setAttribute('width',  size);
     h.setAttribute('height', size);
-    h.setAttribute('rx', 2);
-    h.setAttribute('ry', 2);
-    h.setAttribute('fill',         fillColor   || '#ffffff');
-    h.setAttribute('stroke',       strokeColor || '#475569');
-    h.setAttribute('stroke-width', 1.5 * zoom);
+    h.setAttribute('rx',     2 * zoom);
+    h.setAttribute('ry',     2 * zoom);
+    // Transparent by default; white when active (hovered or selected)
+    h.setAttribute('fill',         isActive ? activeFill : 'transparent');
+    h.setAttribute('stroke',       isActive ? '#94a3b8'  : 'transparent');
+    h.setAttribute('stroke-width', 1 * zoom);
     h.setAttribute('data-handle',  handleCode);
-    h.style.cursor       = cursor;
+    h.style.cursor        = cursor;
     h.style.pointerEvents = 'all';
     g.appendChild(h);
   }
 
-  // ── Icon ──────────────────────────────────────────────────────────
-
+  // ── Icon ─────────────────────────────────────────────────────
   function _renderIcon(g, shape, pos, zoom) {
     const typeString = (shape.Type || 'rectangle').toLowerCase();
     const primitives = ['line', 'circle', 'rectangle', 'rect', 'ellipse', 'cylinder', 'database'];
     if (primitives.includes(typeString)) return;
 
-    const iconSize = Math.min(shape.Width, shape.Height) * zoom * 0.55;
-    const parser   = new DOMParser();
-    const doc      = parser.parseFromString(shape.SvgIcon, 'image/svg+xml');
-    const svgContent = doc.querySelector('svg');
+    const iconSize    = Math.min(shape.Width, shape.Height) * zoom * 0.55;
+    const parser      = new DOMParser();
+    const doc         = parser.parseFromString(shape.SvgIcon, 'image/svg+xml');
+    const svgContent  = doc.querySelector('svg');
 
     if (svgContent) {
       const gIcon = document.createElementNS(NS, 'g');
       gIcon.style.pointerEvents = 'none';
       const scale = iconSize / 40;
-      const tx = pos.x - (20 * scale);
-      const ty = pos.y - (20 * scale);
+      const tx    = pos.x - (20 * scale);
+      const ty    = pos.y - (20 * scale);
       gIcon.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
       gIcon.setAttribute('fill', shape.Color || '#6366f1');
-
       svgContent.childNodes.forEach(node => {
-        if (node.nodeType === 1) {
-          if (node.getAttribute('opacity') === '0.1') return;
+        if (node.nodeType === 1 && node.getAttribute('opacity') !== '0.1') {
           gIcon.appendChild(node.cloneNode(true));
         }
       });
@@ -288,8 +301,7 @@ const RenderShapes = (() => {
     }
   }
 
-  // ── Label ─────────────────────────────────────────────────────────
-
+  // ── Label ─────────────────────────────────────────────────────
   function _renderLabel(g, shape, pos, zoom, type) {
     const text = document.createElementNS(NS, 'text');
     let yOff = 0;
@@ -298,13 +310,13 @@ const RenderShapes = (() => {
     } else {
       yOff = (shape.Height * zoom) / 2 + 16 * zoom;
     }
-    text.setAttribute('x',           pos.x);
-    text.setAttribute('y',           pos.y + yOff);
+    text.setAttribute('x', pos.x);
+    text.setAttribute('y', pos.y + yOff);
     text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('fill',        '#475569');
-    text.style.fontFamily  = 'Inter, system-ui, sans-serif';
-    text.style.fontSize    = (12 * zoom) + 'px';
-    text.style.fontWeight  = '500';
+    text.setAttribute('fill', '#475569');
+    text.style.fontFamily    = 'Inter, system-ui, sans-serif';
+    text.style.fontSize      = (12 * zoom) + 'px';
+    text.style.fontWeight    = '500';
     text.style.pointerEvents = 'none';
     text.textContent = shape.Label;
     g.appendChild(text);

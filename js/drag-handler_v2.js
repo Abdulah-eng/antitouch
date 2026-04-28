@@ -69,40 +69,80 @@ const DragHandler = (() => {
       if (type === 'line') {
         const hw = _shapeSnapshot.Width / 2;
         const hh = _shapeSnapshot.Height / 2;
+
+        // Correct World mapping for endpoints relative to mouse cursor
+        // Based on SVG render: p1_screen = (pos.x - hw, pos.y - hh)
+        // Which translates to World: p1_world = (WorldX - hw, WorldY + hh)
         const sP1X = _shapeSnapshot.WorldX - hw;
         const sP1Y = _shapeSnapshot.WorldY + hh;
         const sP2X = _shapeSnapshot.WorldX + hw;
         const sP2Y = _shapeSnapshot.WorldY - hh;
+
         if (_activeHandle === 'p1') {
-          const nP1X = sP1X + dx; const nP1Y = sP1Y + dy;
-          changes.WorldX = (nP1X + sP2X) / 2; changes.WorldY = (nP1Y + sP2Y) / 2;
-          changes.Width  = sP2X - nP1X;        changes.Height = nP1Y - sP2Y;
+          // Point 1 moves exactly by dx, dy. Point 2 remains anchored perfectly.
+          const nP1X = sP1X + dx;
+          const nP1Y = sP1Y + dy;
+          changes.WorldX = (nP1X + sP2X) / 2;
+          changes.WorldY = (nP1Y + sP2Y) / 2;
+          changes.Width  = sP2X - nP1X;
+          changes.Height = nP1Y - sP2Y;
         } else if (_activeHandle === 'p2') {
-          const nP2X = sP2X + dx; const nP2Y = sP2Y + dy;
-          changes.WorldX = (sP1X + nP2X) / 2; changes.WorldY = (sP1Y + nP2Y) / 2;
-          changes.Width  = nP2X - sP1X;        changes.Height = sP1Y - nP2Y;
+          // Point 2 moves by dx, dy. Point 1 remains anchored perfectly.
+          const nP2X = sP2X + dx;
+          const nP2Y = sP2Y + dy;
+          changes.WorldX = (sP1X + nP2X) / 2;
+          changes.WorldY = (sP1Y + nP2Y) / 2;
+          changes.Width  = nP2X - sP1X;
+          changes.Height = sP1Y - nP2Y;
         }
       } else if (type === 'circle' || type === 'ellipse') {
-        const dist = Math.sqrt(
-          (currentWorldPos.x - _shapeSnapshot.WorldX) ** 2 +
-          (currentWorldPos.y - _shapeSnapshot.WorldY) ** 2
-        );
+        const dist = Math.sqrt((currentWorldPos.x - _shapeSnapshot.WorldX)**2 + (currentWorldPos.y - _shapeSnapshot.WorldY)**2);
         changes.Width  = dist * 2;
         changes.Height = dist * 2;
       } else {
-        // Rectangle — 8 handles (M5: added N / S / E / W edge midpoints)
-        const sw = _shapeSnapshot.Width,  sh = _shapeSnapshot.Height;
-        const sx = _shapeSnapshot.WorldX, sy = _shapeSnapshot.WorldY;
-        // Screen-to-World vertical parity: screen DOWN = World dy < 0
-        switch (_activeHandle) {
-          case 'se': changes.Width = Math.max(10, sw+dx); changes.Height = Math.max(10, sh-dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
-          case 'nw': changes.Width = Math.max(10, sw-dx); changes.Height = Math.max(10, sh+dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
-          case 'ne': changes.Width = Math.max(10, sw+dx); changes.Height = Math.max(10, sh+dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
-          case 'sw': changes.Width = Math.max(10, sw-dx); changes.Height = Math.max(10, sh-dy); changes.WorldX = sx+dx/2; changes.WorldY = sy+dy/2; break;
-          case 'n':  changes.Height = Math.max(10, sh+dy); changes.WorldY = sy+dy/2; break;
-          case 's':  changes.Height = Math.max(10, sh-dy); changes.WorldY = sy+dy/2; break;
-          case 'e':  changes.Width  = Math.max(10, sw+dx); changes.WorldX = sx+dx/2; break;
-          case 'w':  changes.Width  = Math.max(10, sw-dx); changes.WorldX = sx+dx/2; break;
+        const sw = _shapeSnapshot.Width;
+        const sh = _shapeSnapshot.Height;
+        const sx = _shapeSnapshot.WorldX;
+        const sy = _shapeSnapshot.WorldY;
+
+        // Screen UP = World dy > 0;  Screen DOWN = World dy < 0
+        if (_activeHandle === 'se') {
+          changes.Width  = Math.max(10, sw + dx);
+          changes.Height = Math.max(10, sh - dy);
+          changes.WorldX = sx + dx / 2;
+          changes.WorldY = sy + dy / 2;
+        } else if (_activeHandle === 'nw') {
+          changes.Width  = Math.max(10, sw - dx);
+          changes.Height = Math.max(10, sh + dy);
+          changes.WorldX = sx + dx / 2;
+          changes.WorldY = sy + dy / 2;
+        } else if (_activeHandle === 'ne') {
+          changes.Width  = Math.max(10, sw + dx);
+          changes.Height = Math.max(10, sh + dy);
+          changes.WorldX = sx + dx / 2;
+          changes.WorldY = sy + dy / 2;
+        } else if (_activeHandle === 'sw') {
+          changes.Width  = Math.max(10, sw - dx);
+          changes.Height = Math.max(10, sh - dy);
+          changes.WorldX = sx + dx / 2;
+          changes.WorldY = sy + dy / 2;
+        // ── Edge handles (M5) ──────────────────────────────────
+        } else if (_activeHandle === 'n') {
+          // North edge: only height and Y centre change
+          changes.Height = Math.max(10, sh + dy);
+          changes.WorldY = sy + dy / 2;
+        } else if (_activeHandle === 's') {
+          // South edge
+          changes.Height = Math.max(10, sh - dy);
+          changes.WorldY = sy + dy / 2;
+        } else if (_activeHandle === 'e') {
+          // East edge: only width and X centre change
+          changes.Width  = Math.max(10, sw + dx);
+          changes.WorldX = sx + dx / 2;
+        } else if (_activeHandle === 'w') {
+          // West edge
+          changes.Width  = Math.max(10, sw - dx);
+          changes.WorldX = sx + dx / 2;
         }
       }
     }
@@ -140,11 +180,7 @@ const DragHandler = (() => {
         });
         RenderCanvas.render();
       } else if (_hasMoved) {
-        // Successful, non-colliding move -> Record state, mark dirty, save valid center
-        CanvasState.updateShape(_draggedShapeId, {
-          PreviousValidCenterX: finalShape.WorldX,
-          PreviousValidCenterY: finalShape.WorldY,
-        });
+        // Successful, non-colliding move -> Record state and mark dirty
         if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
         if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
       }
@@ -176,7 +212,7 @@ const DragHandler = (() => {
     if (h === 'ne' || h === 'sw') return 'nesw-resize';
     if (h === 'n'  || h === 's')  return 'ns-resize';
     if (h === 'e'  || h === 'w')  return 'ew-resize';
-    if (h === 'p1' || h === 'p2') return 'crosshair';
+    if (h === 'p1' || h === 'p2') return 'pointer';
     return 'move';
   }
 

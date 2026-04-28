@@ -3,10 +3,11 @@
  * ==================
  * Version M3.0 — Single source of truth for the active diagram.
  *
- * BUG-18 fix: Added ViewportWidth, ViewportHeight to Canvas object.
- * BUG-20 fix: Added AxisOrientationZ, IsInfiniteX/Y/Z to Canvas object.
+ * M3.0: Added GlobalVars store for Rectangle and Circle shape defaults.
+ *       getGlobalVars() / updateGlobalVar() / hoverShape() / getHoveredId() added.
+ * BUG-18 fix: Added ViewportWidth, ViewportHeight.
+ * BUG-20 fix: Added AxisOrientationZ, IsInfiniteX/Y/Z.
  * BUG-10 fix: Added updateDiagramMeta() for root-level diagram properties.
- * M3     fix: Added GlobalVars (Rectangle + Circle) with padding + color defaults.
  */
 
 'use strict';
@@ -17,22 +18,56 @@ const CanvasState = (() => {
 
   let activeDiagram   = null;
   let selectedShapeId = null;
+  let hoveredShapeId  = null;
+
+  // ── Global Variables (per shape-type defaults) ────────────────────────────
+  const _globalVars = {
+    rectangle: {
+      defaultFillColor:               '#6366f1',
+      defaultStrokeColor:             '#6366f1',
+      hoverPaddingRatio:              0.05,   // 5% of min(w,h)
+      protectionPaddingRatio:         0.10,   // must remain > hoverPaddingRatio
+      resizeControlPointDefaultColor: 'transparent',
+      resizeControlPointHoverColor:   '#ffffff',
+    },
+    circle: {
+      defaultFillColor:               '#6366f1',
+      defaultStrokeColor:             '#6366f1',
+      hoverPaddingRatio:              0.05,
+      protectionPaddingRatio:         0.10,
+      resizeControlPointDefaultColor: 'transparent',
+      resizeControlPointHoverColor:   '#ffffff',
+    },
+  };
+
+  function getGlobalVars() { return _globalVars; }
+
+  function updateGlobalVar(type, changes) {
+    if (!_globalVars[type]) return;
+    // Strict rule: ProtectionPaddingRatio must always be > HoverPaddingRatio
+    if (changes.hoverPaddingRatio !== undefined && changes.protectionPaddingRatio !== undefined) {
+      if (changes.protectionPaddingRatio <= changes.hoverPaddingRatio) {
+        console.warn('[CanvasState] updateGlobalVar rejected: ProtectionPaddingRatio must be > HoverPaddingRatio');
+        return;
+      }
+    }
+    Object.assign(_globalVars[type], changes);
+    console.log(`[CanvasState] GlobalVar [${type}] updated:`, _globalVars[type]);
+  }
 
   // ──────────────────────────────────────────────────────────────
   /**
    * initializeCanvasState
    * ─────────────────────
-   * Trigger:     Application startup (main_v2.js), JSON/DB diagram reload
-   * Input:       Optional config — flat or nested Canvas:{}
+   * Trigger:     App startup, JSON/DB reload
+   * Input:       Optional config — flat or { Canvas:{...} }
    * Output:      true on success
-   * State Change: Replaces activeDiagram entirely
    */
   function initializeCanvasState(config = {}) {
     try {
-      const c  = config.Canvas || config;
-      const gv = config.GlobalVars || {};
-
+      const c = config.Canvas || config;
       selectedShapeId = null;
+      hoveredShapeId  = null;
 
       activeDiagram = {
         DiagramID:      config.DiagramID      || 'diagram-' + Date.now(),
@@ -57,8 +92,8 @@ const CanvasState = (() => {
 
           ViewportCenterX: c.ViewportCenterX !== undefined ? c.ViewportCenterX : 0,
           ViewportCenterY: c.ViewportCenterY !== undefined ? c.ViewportCenterY : 0,
-          ViewportWidth:   c.ViewportWidth  || CanvasConfig.DEFAULT_VIEWPORT_WIDTH,
-          ViewportHeight:  c.ViewportHeight || CanvasConfig.DEFAULT_VIEWPORT_HEIGHT,
+          ViewportWidth:   c.ViewportWidth   || CanvasConfig.DEFAULT_VIEWPORT_WIDTH,
+          ViewportHeight:  c.ViewportHeight  || CanvasConfig.DEFAULT_VIEWPORT_HEIGHT,
 
           ZoomScale: c.ZoomScale || 1.0,
 
@@ -74,29 +109,7 @@ const CanvasState = (() => {
           ZoomEnabled: c.ZoomEnabled !== undefined ? c.ZoomEnabled : true,
         },
 
-        Shapes: config.Shapes || [],
-
-        // ── M3: Global Variables for shape types ────────────────────
-        GlobalVars: {
-          Rectangle: {
-            DefaultFillColor:         gv.Rectangle?.DefaultFillColor         || '#6366f1',
-            DefaultStrokeColor:       gv.Rectangle?.DefaultStrokeColor       || '#6366f1',
-            ControlPointColorDefault: gv.Rectangle?.ControlPointColorDefault || '#ffffff',
-            ControlPointColorActive:  gv.Rectangle?.ControlPointColorActive  || '#f59e0b',
-            HoverPaddingXRatio:       gv.Rectangle?.HoverPaddingXRatio       ?? 0.10,
-            HoverPaddingYRatio:       gv.Rectangle?.HoverPaddingYRatio       ?? 0.10,
-            ProtectionPaddingXRatio:  gv.Rectangle?.ProtectionPaddingXRatio  ?? 0.20,
-            ProtectionPaddingYRatio:  gv.Rectangle?.ProtectionPaddingYRatio  ?? 0.20,
-          },
-          Circle: {
-            DefaultFillColor:             gv.Circle?.DefaultFillColor             || '#6366f1',
-            DefaultStrokeColor:           gv.Circle?.DefaultStrokeColor           || '#6366f1',
-            ControlPointColorDefault:     gv.Circle?.ControlPointColorDefault     || '#ffffff',
-            ControlPointColorActive:      gv.Circle?.ControlPointColorActive      || '#f59e0b',
-            HoverPaddingRadiusRatio:      gv.Circle?.HoverPaddingRadiusRatio      ?? 0.10,
-            ProtectionPaddingRadiusRatio: gv.Circle?.ProtectionPaddingRadiusRatio ?? 0.20,
-          },
-        },
+        Shapes: config.Shapes || []
       };
 
       console.log('[CanvasState] State Initialized — Shapes:', activeDiagram.Shapes.length);
@@ -108,15 +121,16 @@ const CanvasState = (() => {
     }
   }
 
-  // ── Getters ─────────────────────────────────────────────────────
+  // ── Getters ───────────────────────────────────────────────────
   function getActiveDiagram() { return activeDiagram; }
-  function getCanvas()        { return activeDiagram ? activeDiagram.Canvas     : null; }
-  function getShapes()        { return activeDiagram ? activeDiagram.Shapes     : []; }
+  function getCanvas()        { return activeDiagram ? activeDiagram.Canvas : null; }
+  function getShapes()        { return activeDiagram ? activeDiagram.Shapes : []; }
   function getSelectedId()    { return selectedShapeId; }
-  function getGlobalVars()    { return activeDiagram ? activeDiagram.GlobalVars : {}; }
+  function getHoveredId()     { return hoveredShapeId; }
 
-  // ── Shape mutations ─────────────────────────────────────────────
+  // ── Shape mutations ───────────────────────────────────────────
   function selectShape(id) { selectedShapeId = id; }
+  function hoverShape(id)  { hoveredShapeId  = id; }
 
   function addShape(shape) {
     if (!activeDiagram) return;
@@ -139,41 +153,15 @@ const CanvasState = (() => {
     if (activeDiagram) activeDiagram.Shapes = [];
   }
 
-  // ── Canvas mutations ────────────────────────────────────────────
-  /**
-   * updateCanvas
-   * Merges changes into activeDiagram.Canvas (viewport, colors, flags, etc.)
-   */
+  // ── Canvas mutations ─────────────────────────────────────────
   function updateCanvas(changes) {
     if (!activeDiagram) return;
     Object.assign(activeDiagram.Canvas, changes);
   }
 
   /**
-   * updateGlobalVars  (M3)
-   * ──────────────────────
-   * Merges shape-type global variable changes into activeDiagram.GlobalVars.
-   * Accepts: { Rectangle: {...} } and/or { Circle: {...} }
-   * Validation is done in PropertiesModal before calling this function.
-   */
-  function updateGlobalVars(changes) {
-    if (!activeDiagram) return;
-    if (!activeDiagram.GlobalVars) activeDiagram.GlobalVars = {};
-    if (changes.Rectangle) {
-      if (!activeDiagram.GlobalVars.Rectangle) activeDiagram.GlobalVars.Rectangle = {};
-      Object.assign(activeDiagram.GlobalVars.Rectangle, changes.Rectangle);
-    }
-    if (changes.Circle) {
-      if (!activeDiagram.GlobalVars.Circle) activeDiagram.GlobalVars.Circle = {};
-      Object.assign(activeDiagram.GlobalVars.Circle, changes.Circle);
-    }
-  }
-
-  /**
-   * updateDiagramMeta  (BUG-10 fix)
-   * ─────────────────────────────────
+   * updateDiagramMeta — BUG-10 fix
    * Updates root-level diagram properties (DiagramID, DiagramName, DiagramVersion).
-   * These live on activeDiagram, NOT on activeDiagram.Canvas.
    */
   function updateDiagramMeta(changes) {
     if (!activeDiagram) return;
@@ -183,21 +171,23 @@ const CanvasState = (() => {
     });
   }
 
-  // ── Public API ───────────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────
   return {
     initializeCanvasState,
     getActiveDiagram,
     getCanvas,
     getShapes,
     getSelectedId,
+    getHoveredId,
     getGlobalVars,
+    updateGlobalVar,
     selectShape,
+    hoverShape,
     addShape,
     updateShape,
     removeShape,
     clearShapes,
     updateCanvas,
-    updateGlobalVars,
     updateDiagramMeta,
   };
 

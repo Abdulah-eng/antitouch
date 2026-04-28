@@ -25,9 +25,10 @@ builder.Services.AddDbContext<DiagramDbContext>(options =>
 );
 
 // BUG-12 fix: Repository and Service now use Scoped lifetime (required for DbContext).
-// Previously registered as Singleton, which is incompatible with a scoped DbContext.
-builder.Services.AddScoped<IDiagramCanvasRepository, DiagramCanvasRepository>();
-builder.Services.AddScoped<IDiagramCanvasService,    DiagramCanvasService>();
+builder.Services.AddScoped<IDiagramCanvasRepository,   DiagramCanvasRepository>();
+builder.Services.AddScoped<IDiagramCanvasService,       DiagramCanvasService>();
+// M3: Shape hierarchy validation rules
+builder.Services.AddScoped<IShapeHierarchyRepository,  ShapeHierarchyRepository>();
 
 // CORS for local development
 builder.Services.AddCors(options =>
@@ -50,6 +51,11 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<DiagramDbContext>();
         db.Database.EnsureCreated();
         Console.WriteLine("[Startup] Database schema created successfully.");
+
+        // M3: Seed default shape hierarchy (AWS → VPC → AZ → Route Table, etc.)
+        var hierarchyRepo = scope.ServiceProvider.GetRequiredService<IShapeHierarchyRepository>();
+        hierarchyRepo.SeedDefaultHierarchyAsync().GetAwaiter().GetResult();
+        Console.WriteLine("[Startup] Shape hierarchy seeded.");
     }
     catch (Exception ex)
     {

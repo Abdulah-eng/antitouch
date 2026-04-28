@@ -1,19 +1,16 @@
 /**
  * debug-panel.js
  * ==============
- * Responsibility: Render live diagnostic information into #debug-panel.
- * Called after every canvas render cycle.
+ * Version M5.0 — Live diagnostic display.
  *
- * BUG-03 fix: Removed all references to the deleted diagram.TestObject.
- * Now reads from CanvasState.getCanvas() and CanvasState.getShapes().
+ * M5.0 additions:
+ *   - Selected shape world-space info (WorldX, WorldY, Width, Height)
+ *   - Hovered shape ID
+ *   - GlobalVars rectangle/circle hover + protection padding ratios
  *
- * Trigger:     Called by RenderCanvas.render() at the end of each frame
- * Input:       None (reads CanvasState directly)
- * Validation:  Panel element and canvas state must exist
- * Processing:  Formats canvas, viewport, and shape info as HTML rows
- * Output:      Updated innerHTML in #debug-panel
- * State Change: None — read-only diagnostic display
- * Error:        No-op if panel or canvas state is missing
+ * Trigger:     Called by RenderCanvas.render() at end of each frame.
+ * Input:       Reads CanvasState directly — no side effects.
+ * Output:      Updated innerHTML in #debug-panel.
  */
 
 'use strict';
@@ -28,42 +25,60 @@ const DebugPanel = (() => {
     const diagram = CanvasState.getActiveDiagram();
     if (!canvas || !diagram) return;
 
-    const shapes  = CanvasState.getShapes();
-    const shapeCount = shapes.length;
+    const shapes     = CanvasState.getShapes();
+    const selectedId = CanvasState.getSelectedId();
+    const hoveredId  = CanvasState.getHoveredId();
+    const gv         = CanvasState.getGlobalVars();
 
-    // Get screen dimensions from SVG layer
     const svg = document.getElementById('canvas-svg');
     const sW  = svg ? svg.clientWidth  : 0;
     const sH  = svg ? svg.clientHeight : 0;
 
-    // First shape world & screen position (if any exist)
-    let firstShapeRows = '<div class="debug-row"><span class="debug-label">Shapes:</span><span class="debug-value">none</span></div>';
-    if (shapes.length > 0) {
-      const s    = shapes[0];
-      const sPos = WorldToScreen.convert(s.WorldX, s.WorldY, sW, sH);
-      firstShapeRows = `
-        <div class="debug-row"><span class="debug-label">Shape[0] W:</span><span class="debug-value">(${s.WorldX.toFixed(1)}, ${s.WorldY.toFixed(1)})</span></div>
-        <div class="debug-row"><span class="debug-label">Shape[0] S:</span><span class="debug-value">(${Math.round(sPos.x)}, ${Math.round(sPos.y)})</span></div>`;
+    // ── Selected shape rows ────────────────────────────────────
+    let selectedRows = `<div class="debug-row"><span class="debug-label">Selected:</span><span class="debug-value">none</span></div>`;
+    if (selectedId) {
+      const s = shapes.find(sh => sh.ShapeID === selectedId);
+      if (s) {
+        const sPos = WorldToScreen.convert(s.WorldX, s.WorldY, sW, sH);
+        selectedRows = `
+          <div class="debug-row"><span class="debug-label">Selected:</span><span class="debug-value" style="color:#60a5fa">${s.Label || s.Type}</span></div>
+          <div class="debug-row"><span class="debug-label">World (X,Y):</span><span class="debug-value">(${s.WorldX.toFixed(1)}, ${s.WorldY.toFixed(1)})</span></div>
+          <div class="debug-row"><span class="debug-label">Screen (X,Y):</span><span class="debug-value">(${Math.round(sPos.x)}, ${Math.round(sPos.y)})</span></div>
+          <div class="debug-row"><span class="debug-label">W × H:</span><span class="debug-value">${s.Width.toFixed(0)} × ${s.Height.toFixed(0)}</span></div>
+        `;
+      }
+    }
+
+    // ── Hovered shape row ──────────────────────────────────────
+    let hoveredRow = `<div class="debug-row"><span class="debug-label">Hovered:</span><span class="debug-value">none</span></div>`;
+    if (hoveredId) {
+      const h = shapes.find(sh => sh.ShapeID === hoveredId);
+      if (h) {
+        hoveredRow = `<div class="debug-row"><span class="debug-label">Hovered:</span><span class="debug-value" style="color:#93c5fd">${h.Label || h.Type}</span></div>`;
+      }
     }
 
     panel.innerHTML = `
       <div class="debug-title">Diagram</div>
       <div class="debug-row"><span class="debug-label">ID:</span><span class="debug-value">${diagram.DiagramID.slice(-8)}</span></div>
       <div class="debug-row"><span class="debug-label">Name:</span><span class="debug-value">${diagram.DiagramName}</span></div>
-      <div class="debug-row"><span class="debug-label">Version:</span><span class="debug-value">${diagram.DiagramVersion}</span></div>
-      <div class="debug-row"><span class="debug-label">Shapes:</span><span class="debug-value">${shapeCount}</span></div>
+      <div class="debug-row"><span class="debug-label">Shapes:</span><span class="debug-value">${shapes.length}</span></div>
 
-      <div class="debug-title">Viewport (World)</div>
+      <div class="debug-title">Viewport</div>
       <div class="debug-row"><span class="debug-label">Center X:</span><span class="debug-value">${canvas.ViewportCenterX.toFixed(2)}</span></div>
       <div class="debug-row"><span class="debug-label">Center Y:</span><span class="debug-value">${canvas.ViewportCenterY.toFixed(2)}</span></div>
       <div class="debug-row"><span class="debug-label">Zoom:</span><span class="debug-value">${(canvas.ZoomScale * 100).toFixed(0)}%</span></div>
+      <div class="debug-row"><span class="debug-label">Canvas:</span><span class="debug-value">${sW}×${sH}px</span></div>
 
-      <div class="debug-title">Screen</div>
-      <div class="debug-row"><span class="debug-label">Canvas W:</span><span class="debug-value">${sW}px</span></div>
-      <div class="debug-row"><span class="debug-label">Canvas H:</span><span class="debug-value">${sH}px</span></div>
+      <div class="debug-title">Interaction (M5)</div>
+      ${selectedRows}
+      ${hoveredRow}
 
-      <div class="debug-title">First Shape (World → Screen)</div>
-      ${firstShapeRows}
+      <div class="debug-title">GlobalVars</div>
+      <div class="debug-row"><span class="debug-label">Rect hover:</span><span class="debug-value">${gv.rectangle.hoverPaddingRatio}</span></div>
+      <div class="debug-row"><span class="debug-label">Rect prot:</span><span class="debug-value">${gv.rectangle.protectionPaddingRatio}</span></div>
+      <div class="debug-row"><span class="debug-label">Circle hover:</span><span class="debug-value">${gv.circle.hoverPaddingRatio}</span></div>
+      <div class="debug-row"><span class="debug-label">Circle prot:</span><span class="debug-value">${gv.circle.protectionPaddingRatio}</span></div>
     `;
   }
 

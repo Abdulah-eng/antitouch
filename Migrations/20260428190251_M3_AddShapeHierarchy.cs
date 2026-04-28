@@ -24,6 +24,25 @@ namespace Antitouch.Migrations
                 name: "IX_ShapeHierarchyItems_ParentId",
                 table: "ShapeHierarchyItems");
 
+            migrationBuilder.DeleteData(
+                table: "ShapeHierarchyItems",
+                keyColumn: "Id",
+                keyValue: 3);
+
+            migrationBuilder.DeleteData(
+                table: "ShapeHierarchyItems",
+                keyColumn: "Id",
+                keyValue: 4);
+
+            migrationBuilder.DeleteData(
+                table: "ShapeHierarchyItems",
+                keyColumn: "Id",
+                keyValue: 2);
+
+            migrationBuilder.DeleteData(
+                table: "ShapeHierarchyItems",
+                keyColumn: "Id",
+                keyValue: 1);
 
             migrationBuilder.DropColumn(
                 name: "HalfHeight",

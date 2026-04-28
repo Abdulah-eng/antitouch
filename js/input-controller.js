@@ -61,8 +61,8 @@ const InputController = (() => {
       e.stopPropagation();
       e.preventDefault();
       
-      const shapeId = shapeEl.getAttribute('data-obj-id');
-      const handle  = handleEl.getAttribute('data-handle');
+      const shapeId = shapeEl.dataset.objId;
+      const handle  = handleEl.dataset.handle;
       
       console.log('[InputController] SELECTING HANDLE:', handle, 'on shape:', shapeId);
       CanvasState.selectShape(shapeId);
@@ -75,7 +75,7 @@ const InputController = (() => {
       e.stopPropagation();
       e.preventDefault();
 
-      const shapeId = shapeEl.getAttribute('data-obj-id');
+      const shapeId = shapeEl.dataset.objId;
       console.log('[InputController] Shape hit:', shapeId);
       
       CanvasState.selectShape(shapeId);
@@ -100,15 +100,6 @@ const InputController = (() => {
     if (PanHandler.isActive()) {
       PanHandler.onMouseMove(e);
       return;
-    }
-
-    // M5: Hover detection — only when idle (no drag, no pan)
-    if (typeof HoverState !== 'undefined') {
-      const container = document.getElementById('MainCanvasViewport');
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        HoverState.onMouseMove(e, rect.width, rect.height);
-      }
     }
   }
 

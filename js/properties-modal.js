@@ -1,7 +1,11 @@
 /**
  * properties-modal.js
  * ===================
- * Manages the Global Variables and Shape Properties modal.
+ * Milestone 3: Added Circle and Rectangle tabs to Global Variables modal.
+ * Rules enforced:
+ *   - ProtectionPaddingRatio must always be > HoverPaddingRatio
+ *   - Default ResizeControlPointColor = Transparent
+ *   - Default ResizeControlPointHoverColor = White
  */
 
 'use strict';
@@ -11,38 +15,56 @@ const PropertiesModal = (() => {
   let _activeMode = 'canvas';
   let _activeShapeId = null;
 
+  // ── Palette ──────────────────────────────────────────────────────────────
+  const PALETTE = [
+    '#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#0ea5e9', '#64748b',
+    '#ffffff', '#f1f5f9', '#94a3b8', '#1e293b', '#0f172a', '#000000'
+  ];
+
+  // Selected color state
+  let _sel = {
+    stroke: PALETTE[0], fill: PALETTE[0],
+    bg: PALETTE[7],     grid: PALETTE[8],
+    rectFill: PALETTE[0], rectStroke: PALETTE[0],
+    rectResizeDefault: 'transparent', rectResizeHover: '#ffffff',
+    circleFill: PALETTE[0], circleStroke: PALETTE[0],
+    circleResizeDefault: 'transparent', circleResizeHover: '#ffffff',
+  };
+
+  // ── HTML Template ─────────────────────────────────────────────────────────
   function init() {
     const html = `
       <div id="properties-modal-overlay" class="hidden">
         <div class="prop-modal">
           <div class="prop-sidebar">
-            <div class="prop-sidebar-item active" id="tab-canvas"  data-target="form-canvas">Canvas</div>
-            <div class="prop-sidebar-item"         id="tab-rect"   data-target="form-rect">Rectangle</div>
-            <div class="prop-sidebar-item"         id="tab-circle" data-target="form-circle">Circle</div>
-            <div class="prop-sidebar-item hidden"  id="tab-shape"  data-target="form-shape">Shape Properties</div>
+            <div class="prop-sidebar-item active" id="tab-canvas"    data-target="form-canvas"   >Canvas</div>
+            <div class="prop-sidebar-item"         id="tab-rectangle" data-target="form-rectangle">Rectangle</div>
+            <div class="prop-sidebar-item"         id="tab-circle"    data-target="form-circle"   >Circle</div>
+            <div class="prop-sidebar-item hidden"  id="tab-shape"     data-target="form-shape"    >Shape Properties</div>
           </div>
           <div class="prop-content">
             <div class="prop-header" id="prop-header-title">Global Variables - Canvas</div>
-            
+
             <div class="prop-body">
-              <!-- Canvas Form -->
+
+              <!-- ═══ Canvas Form ═══ -->
               <div class="prop-form active" id="form-canvas">
-                <div class="prop-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
                   <div class="prop-label">Background color</div>
                   <div class="prop-swatch-grid" id="swatch-grid-bg"></div>
                 </div>
-                <div class="prop-row" style="margin-top: 12px;">
+                <div class="prop-row" style="margin-top:12px;">
                   <div class="prop-label">Grid visible</div>
                   <div class="prop-checkbox-wrap">
                     <input type="checkbox" class="prop-input" id="prop-grid-visible" />
                     <span>Enabled</span>
                   </div>
                 </div>
-                <div class="prop-row" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 12px;">
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
                   <div class="prop-label">Grid color</div>
                   <div class="prop-swatch-grid" id="swatch-grid-grid"></div>
                 </div>
-                <div class="prop-row" style="margin-top: 12px;">
+                <div class="prop-row" style="margin-top:12px;">
                   <div class="prop-label">GridSpacingX</div>
                   <input type="number" class="prop-input" id="prop-grid-x" min="5" max="200" />
                 </div>
@@ -64,99 +86,102 @@ const PropertiesModal = (() => {
                     <span>Enabled</span>
                   </div>
                 </div>
-                <div class="prop-hint">Rule: when Grid visible is unchecked, GridColor, GridSpacingX, GridSpacingY, ShowOriginMarker, and ShowAxes are disabled.</div>
+                <div class="prop-hint">Rule: when Grid visible is unchecked, grid controls are disabled.</div>
               </div>
 
-              <!-- Rectangle Global Defaults Form -->
-              <div class="prop-form" id="form-rect">
+              <!-- ═══ Rectangle Global Defaults Form ═══ -->
+              <div class="prop-form" id="form-rectangle">
+                <div class="prop-section-title">Default Colors</div>
                 <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
-                  <div class="prop-label">Default Fill Colour</div>
+                  <div class="prop-label">Default Fill Color</div>
                   <div class="prop-swatch-grid" id="swatch-rect-fill"></div>
                 </div>
-                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
-                  <div class="prop-label">Default Stroke Colour</div>
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px;">
+                  <div class="prop-label">Default Stroke Color</div>
                   <div class="prop-swatch-grid" id="swatch-rect-stroke"></div>
                 </div>
-                <div class="prop-row" style="margin-top:14px;">
-                  <div class="prop-label">HoverPaddingXRatio</div>
-                  <input type="number" class="prop-input" id="prop-rect-hover-x" min="0" max="1" step="0.01" />
+
+                <div class="prop-section-title" style="margin-top:16px;">Padding Ratios</div>
+                <div class="prop-row">
+                  <div class="prop-label">Hover Padding Ratio</div>
+                  <input type="number" class="prop-input" id="prop-rect-hover-ratio" min="0" max="0.9" step="0.01" />
                 </div>
                 <div class="prop-row">
-                  <div class="prop-label">HoverPaddingYRatio</div>
-                  <input type="number" class="prop-input" id="prop-rect-hover-y" min="0" max="1" step="0.01" />
+                  <div class="prop-label">Protection Padding Ratio</div>
+                  <input type="number" class="prop-input" id="prop-rect-protection-ratio" min="0" max="0.9" step="0.01" />
                 </div>
-                <div class="prop-row">
-                  <div class="prop-label">ProtectionPaddingXRatio</div>
-                  <input type="number" class="prop-input" id="prop-rect-protect-x" min="0" max="2" step="0.01" />
+                <div class="prop-hint" id="rect-padding-hint">Rule: Protection Padding Ratio must be greater than Hover Padding Ratio.</div>
+
+                <div class="prop-section-title" style="margin-top:16px;">Resize Control Points</div>
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                  <div class="prop-label">Default Color (transparent by default)</div>
+                  <div class="prop-swatch-grid" id="swatch-rect-resize-default"></div>
                 </div>
-                <div class="prop-row">
-                  <div class="prop-label">ProtectionPaddingYRatio</div>
-                  <input type="number" class="prop-input" id="prop-rect-protect-y" min="0" max="2" step="0.01" />
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px;">
+                  <div class="prop-label">Hover / Active Color (white by default)</div>
+                  <div class="prop-swatch-grid" id="swatch-rect-resize-hover"></div>
                 </div>
-                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
-                  <div class="prop-label">Resize Control Point (default)</div>
-                  <div class="prop-swatch-grid" id="swatch-rect-cp-default"></div>
-                </div>
-                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:8px;">
-                  <div class="prop-label">Resize Control Point (hover/active)</div>
-                  <div class="prop-swatch-grid" id="swatch-rect-cp-active"></div>
-                </div>
-                <div class="prop-hint">Rule: ProtectionPaddingRatio must always be greater than HoverPaddingRatio.</div>
               </div>
 
-              <!-- Circle Global Defaults Form -->
+              <!-- ═══ Circle Global Defaults Form ═══ -->
               <div class="prop-form" id="form-circle">
+                <div class="prop-section-title">Default Colors</div>
                 <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
-                  <div class="prop-label">Default Fill Colour</div>
+                  <div class="prop-label">Default Fill Color</div>
                   <div class="prop-swatch-grid" id="swatch-circle-fill"></div>
                 </div>
-                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
-                  <div class="prop-label">Default Stroke Colour</div>
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px;">
+                  <div class="prop-label">Default Stroke Color</div>
                   <div class="prop-swatch-grid" id="swatch-circle-stroke"></div>
                 </div>
-                <div class="prop-row" style="margin-top:14px;">
-                  <div class="prop-label">HoverPaddingRadiusRatio</div>
-                  <input type="number" class="prop-input" id="prop-circle-hover" min="0" max="1" step="0.01" />
+
+                <div class="prop-section-title" style="margin-top:16px;">Padding Ratios</div>
+                <div class="prop-row">
+                  <div class="prop-label">Hover Padding Ratio</div>
+                  <input type="number" class="prop-input" id="prop-circle-hover-ratio" min="0" max="0.9" step="0.01" />
                 </div>
                 <div class="prop-row">
-                  <div class="prop-label">ProtectionPaddingRadiusRatio</div>
-                  <input type="number" class="prop-input" id="prop-circle-protect" min="0" max="2" step="0.01" />
+                  <div class="prop-label">Protection Padding Ratio</div>
+                  <input type="number" class="prop-input" id="prop-circle-protection-ratio" min="0" max="0.9" step="0.01" />
+                </div>
+                <div class="prop-hint" id="circle-padding-hint">Rule: Protection Padding Ratio must be greater than Hover Padding Ratio.</div>
+
+                <div class="prop-section-title" style="margin-top:16px;">Resize Control Points</div>
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                  <div class="prop-label">Default Color (transparent by default)</div>
+                  <div class="prop-swatch-grid" id="swatch-circle-resize-default"></div>
+                </div>
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px;">
+                  <div class="prop-label">Hover / Active Color (white by default)</div>
+                  <div class="prop-swatch-grid" id="swatch-circle-resize-hover"></div>
+                </div>
+              </div>
+
+              <!-- ═══ Shape Properties Form ═══ -->
+              <div class="prop-form" id="form-shape">
+                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                  <div class="prop-label">Boundary Colour (Stroke)</div>
+                  <div class="prop-swatch-grid" id="swatch-grid-stroke"></div>
                 </div>
                 <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
-                  <div class="prop-label">Resize Control Point (default)</div>
-                  <div class="prop-swatch-grid" id="swatch-circle-cp-default"></div>
+                  <div class="prop-label">Inner Colour (Fill)</div>
+                  <div class="prop-swatch-grid" id="swatch-grid-fill"></div>
                 </div>
-                <div class="prop-row" style="flex-direction:column;align-items:flex-start;gap:8px;margin-top:8px;">
-                  <div class="prop-label">Resize Control Point (hover/active)</div>
-                  <div class="prop-swatch-grid" id="swatch-circle-cp-active"></div>
+                <div class="prop-row" style="margin-top:16px;">
+                  <div class="prop-label">Width</div>
+                  <input type="number" class="prop-input" id="prop-shape-width" min="1" max="2000" />
                 </div>
-                <div class="prop-hint">Rule: ProtectionPaddingRatio must always be greater than HoverPaddingRatio.</div>
+                <div class="prop-row">
+                  <div class="prop-label">Height</div>
+                  <input type="number" class="prop-input" id="prop-shape-height" min="0" max="2000" />
+                </div>
               </div>
-              
-              <!-- Shape Properties Form -->
-              <div class="prop-form" id="form-shape">
-                 <div class="prop-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                   <div class="prop-label">Boundary Colour (Stroke)</div>
-                   <div class="prop-swatch-grid" id="swatch-grid-stroke"></div>
-                 </div>
-                 <div class="prop-row" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 12px;">
-                   <div class="prop-label">Inner Colour (Fill)</div>
-                   <div class="prop-swatch-grid" id="swatch-grid-fill"></div>
-                 </div>
-                 <div class="prop-row" style="margin-top: 16px;">
-                   <div class="prop-label">Width</div>
-                   <input type="number" class="prop-input" id="prop-shape-width" min="1" max="2000" />
-                 </div>
-                 <div class="prop-row">
-                   <div class="prop-label">Height</div>
-                   <input type="number" class="prop-input" id="prop-shape-height" min="0" max="2000" />
-                 </div>
-               </div><!-- /form-shape -->
-             </div>
+
+            </div><!-- end prop-body -->
 
             <div class="prop-footer">
               <button class="prop-btn prop-btn-cancel" id="btn-prop-cancel">Cancel</button>
-              <button class="prop-btn prop-btn-apply" id="btn-prop-apply">Apply</button>
+              <button class="prop-btn prop-btn-apply"  id="btn-prop-apply">Apply</button>
             </div>
           </div>
         </div>
@@ -164,86 +189,63 @@ const PropertiesModal = (() => {
     `;
     document.body.insertAdjacentHTML('beforeend', html);
 
-    // Bindings
+    // Palette setup — all swatches
+    _initPalette('swatch-grid-bg',            'bg',                  true);
+    _initPalette('swatch-grid-grid',          'grid',                false);
+    _initPalette('swatch-grid-stroke',        'stroke',              false);
+    _initPalette('swatch-grid-fill',          'fill',                false);
+    _initPalette('swatch-rect-fill',          'rectFill',            false);
+    _initPalette('swatch-rect-stroke',        'rectStroke',          false);
+    _initPalette('swatch-rect-resize-default','rectResizeDefault',   true);
+    _initPalette('swatch-rect-resize-hover',  'rectResizeHover',     false);
+    _initPalette('swatch-circle-fill',        'circleFill',          false);
+    _initPalette('swatch-circle-stroke',      'circleStroke',        false);
+    _initPalette('swatch-circle-resize-default','circleResizeDefault',true);
+    _initPalette('swatch-circle-resize-hover','circleResizeHover',   false);
+
+    // Buttons
     document.getElementById('btn-prop-cancel').onclick = close;
-    document.getElementById('btn-prop-apply').onclick = apply;
+    document.getElementById('btn-prop-apply').onclick  = apply;
     document.getElementById('properties-modal-overlay').onclick = (e) => {
       if (e.target.id === 'properties-modal-overlay') close();
     };
 
-    const tabs = document.querySelectorAll('.prop-sidebar-item');
-    tabs.forEach(t => t.onclick = (e) => _switchTab(e.target.dataset.target));
+    // Tab navigation
+    document.querySelectorAll('.prop-sidebar-item').forEach(t =>
+      t.addEventListener('click', () => _switchTab(t.dataset.target))
+    );
 
-    // Initialise ALL palette grids upfront so swatches exist when any tab is opened
-    _initPalette('swatch-grid-bg',         'bg');
-    _initPalette('swatch-grid-grid',       'gridColor');
-    _initPalette('swatch-grid-stroke',     'stroke');
-    _initPalette('swatch-grid-fill',       'fill');
-    _initPalette('swatch-rect-fill',       'rectFill');
-    _initPalette('swatch-rect-stroke',     'rectStroke');
-    _initPalette('swatch-rect-cp-default', 'rectCpDefault');
-    _initPalette('swatch-rect-cp-active',  'rectCpActive');
-    _initPalette('swatch-circle-fill',       'circleFill');
-    _initPalette('swatch-circle-stroke',     'circleStroke');
-    _initPalette('swatch-circle-cp-default', 'circleCpDefault');
-    _initPalette('swatch-circle-cp-active',  'circleCpActive');
-
-    console.log('[PropertiesModal] Initialized.');
+    console.log('[PropertiesModal] Initialized — M3 (Circle + Rectangle global tabs).');
   }
 
-  // ── Colour palette ────────────────────────────────────────────────
-  const PALETTE = [
-    '#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#0ea5e9',
-    '#64748b', '#ffffff', '#1e293b', '#000000'
-  ];
-
-  // Selected-state variables
-  let _selectedStroke      = PALETTE[0];
-  let _selectedFill        = PALETTE[0];
-  let _selectedBg          = PALETTE[6]; // white
-  let _selectedGrid        = PALETTE[5]; // slate
-
-  let _selectedRectFill      = PALETTE[0];
-  let _selectedRectStroke    = PALETTE[0];
-  let _selectedRectCpDefault = PALETTE[6]; // white
-  let _selectedRectCpActive  = PALETTE[2]; // amber
-
-  let _selectedCircleFill      = PALETTE[0];
-  let _selectedCircleStroke    = PALETTE[0];
-  let _selectedCircleCpDefault = PALETTE[6];
-  let _selectedCircleCpActive  = PALETTE[2];
-
-  function _initPalette(containerId, type) {
+  // ── Palette builder ───────────────────────────────────────────────────────
+  function _initPalette(containerId, key, includeTransparent) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    PALETTE.forEach(color => {
+
+    const colors = includeTransparent ? ['transparent', ...PALETTE] : PALETTE;
+
+    colors.forEach(color => {
       const swatch = document.createElement('div');
       swatch.className = 'prop-swatch';
-      swatch.style.backgroundColor = color;
+      if (color === 'transparent') {
+        swatch.style.background = 'repeating-conic-gradient(#aaa 0% 25%, #fff 0% 50%) 0 0 / 10px 10px';
+        swatch.title = 'Transparent';
+      } else {
+        swatch.style.backgroundColor = color;
+      }
       swatch.dataset.color = color;
       swatch.onclick = () => {
         container.querySelectorAll('.prop-swatch').forEach(s => s.classList.remove('active'));
         swatch.classList.add('active');
-        if      (type === 'stroke')         _selectedStroke         = color;
-        else if (type === 'fill')           _selectedFill           = color;
-        else if (type === 'bg')             _selectedBg             = color;
-        else if (type === 'gridColor')      _selectedGrid           = color;
-        else if (type === 'rectFill')       _selectedRectFill       = color;
-        else if (type === 'rectStroke')     _selectedRectStroke     = color;
-        else if (type === 'rectCpDefault')  _selectedRectCpDefault  = color;
-        else if (type === 'rectCpActive')   _selectedRectCpActive   = color;
-        else if (type === 'circleFill')     _selectedCircleFill     = color;
-        else if (type === 'circleStroke')   _selectedCircleStroke   = color;
-        else if (type === 'circleCpDefault') _selectedCircleCpDefault = color;
-        else if (type === 'circleCpActive') _selectedCircleCpActive  = color;
+        _sel[key] = color;
       };
       container.appendChild(swatch);
     });
   }
 
-  // ── Tab switching ─────────────────────────────────────────────────
+  // ── Tab switching ─────────────────────────────────────────────────────────
   function _switchTab(targetId) {
-    if (!targetId) return;
     document.querySelectorAll('.prop-sidebar-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.prop-form').forEach(f => f.classList.remove('active'));
 
@@ -252,44 +254,38 @@ const PropertiesModal = (() => {
     if (tab)  tab.classList.add('active');
     if (form) form.classList.add('active');
 
-    const title = document.getElementById('prop-header-title');
     const titles = {
-      'form-canvas': 'Global Variables – Canvas',
-      'form-rect':   'Global Variables – Rectangle',
-      'form-circle': 'Global Variables – Circle',
-      'form-shape':  'Shape Properties',
+      'form-canvas':    'Global Variables - Canvas',
+      'form-rectangle': 'Global Variables - Rectangle',
+      'form-circle':    'Global Variables - Circle',
+      'form-shape':     'Shape Properties',
     };
-    if (title) title.textContent = titles[targetId] || 'Properties';
-
+    const h = document.getElementById('prop-header-title');
+    if (h) h.textContent = titles[targetId] || '';
     _activeMode = targetId;
-
-    // Auto-populate the newly opened tab
-    if (targetId === 'form-canvas')  _populateCanvasForm();
-    if (targetId === 'form-rect')    _populateRectForm();
-    if (targetId === 'form-circle')  _populateCircleForm();
   }
 
-  // ── Open functions ────────────────────────────────────────────────
+  // ── Open for canvas (Edit menu → Global Variables) ────────────────────────
   function openForCanvas() {
     _activeShapeId = null;
     document.getElementById('tab-shape').classList.add('hidden');
+    document.getElementById('tab-shape').style.display = 'none';
     _switchTab('form-canvas');
+    _populateCanvasForm();
+    _populateRectangleForm();
+    _populateCircleForm();
     document.getElementById('properties-modal-overlay').classList.remove('hidden');
-    
-    // Init palettes if not done
-    _initPalette('swatch-grid-bg',   'bg');
-    _initPalette('swatch-grid-grid', 'gridColor');
   }
 
+  // ── Open for individual shape ─────────────────────────────────────────────
   function openForShape(shapeId) {
     _activeShapeId = shapeId;
-    document.getElementById('tab-shape').classList.remove('hidden');
+    const tabShape = document.getElementById('tab-shape');
+    tabShape.classList.remove('hidden');
+    tabShape.style.display = 'block';
     _switchTab('form-shape');
     _populateShapeForm(shapeId);
     document.getElementById('properties-modal-overlay').classList.remove('hidden');
-
-    _initPalette('swatch-grid-stroke', 'stroke');
-    _initPalette('swatch-grid-fill',   'fill');
   }
 
   function close() {
@@ -297,21 +293,26 @@ const PropertiesModal = (() => {
   }
 
   function apply() {
-    if      (_activeMode === 'form-canvas') _applyCanvasForm();
-    else if (_activeMode === 'form-rect')   _applyRectForm();
-    else if (_activeMode === 'form-circle') _applyCircleForm();
-    else if (_activeMode === 'form-shape' && _activeShapeId) _applyShapeForm();
+    if (_activeMode === 'form-canvas') {
+      _applyCanvasForm();
+    } else if (_activeMode === 'form-rectangle') {
+      _applyRectangleForm();
+    } else if (_activeMode === 'form-circle') {
+      _applyCircleForm();
+    } else if (_activeMode === 'form-shape' && _activeShapeId) {
+      _applyShapeForm();
+    }
     close();
   }
 
-  // ── Populate helpers ──────────────────────────────────────────────
+  // ── Canvas populate/apply ─────────────────────────────────────────────────
   function _populateCanvasForm() {
     const canvas = CanvasState.getCanvas();
     if (!canvas) return;
-    _selectedBg   = canvas.BackgroundColor || PALETTE[6];
-    _selectedGrid = canvas.GridColor       || PALETTE[5];
-    _updateActiveSwatches('swatch-grid-bg',   _selectedBg);
-    _updateActiveSwatches('swatch-grid-grid', _selectedGrid);
+    _sel.bg   = canvas.BackgroundColor || PALETTE[7];
+    _sel.grid = canvas.GridColor       || PALETTE[8];
+    _updateActiveSwatches('swatch-grid-bg',   _sel.bg);
+    _updateActiveSwatches('swatch-grid-grid', _sel.grid);
     document.getElementById('prop-grid-visible').checked  = canvas.GridVisible !== false;
     document.getElementById('prop-grid-x').value          = canvas.GridSpacingX || 25;
     document.getElementById('prop-grid-y').value          = canvas.GridSpacingY || 25;
@@ -319,63 +320,11 @@ const PropertiesModal = (() => {
     document.getElementById('prop-show-axes').checked     = canvas.ShowAxes !== false;
   }
 
-  function _populateRectForm() {
-    const gv = CanvasState.getGlobalVars();
-    const r  = gv.Rectangle;
-    _selectedRectFill      = r.DefaultFillColor;
-    _selectedRectStroke    = r.DefaultStrokeColor;
-    _selectedRectCpDefault = r.ControlPointColorDefault;
-    _selectedRectCpActive  = r.ControlPointColorActive;
-    _updateActiveSwatches('swatch-rect-fill',       _selectedRectFill);
-    _updateActiveSwatches('swatch-rect-stroke',     _selectedRectStroke);
-    _updateActiveSwatches('swatch-rect-cp-default', _selectedRectCpDefault);
-    _updateActiveSwatches('swatch-rect-cp-active',  _selectedRectCpActive);
-    document.getElementById('prop-rect-hover-x').value    = r.HoverPaddingXRatio;
-    document.getElementById('prop-rect-hover-y').value    = r.HoverPaddingYRatio;
-    document.getElementById('prop-rect-protect-x').value  = r.ProtectionPaddingXRatio;
-    document.getElementById('prop-rect-protect-y').value  = r.ProtectionPaddingYRatio;
-  }
-
-  function _populateCircleForm() {
-    const gv = CanvasState.getGlobalVars();
-    const c  = gv.Circle;
-    _selectedCircleFill      = c.DefaultFillColor;
-    _selectedCircleStroke    = c.DefaultStrokeColor;
-    _selectedCircleCpDefault = c.ControlPointColorDefault;
-    _selectedCircleCpActive  = c.ControlPointColorActive;
-    _updateActiveSwatches('swatch-circle-fill',       _selectedCircleFill);
-    _updateActiveSwatches('swatch-circle-stroke',     _selectedCircleStroke);
-    _updateActiveSwatches('swatch-circle-cp-default', _selectedCircleCpDefault);
-    _updateActiveSwatches('swatch-circle-cp-active',  _selectedCircleCpActive);
-    document.getElementById('prop-circle-hover').value   = c.HoverPaddingRadiusRatio;
-    document.getElementById('prop-circle-protect').value = c.ProtectionPaddingRadiusRatio;
-  }
-
-  function _populateShapeForm(shapeId) {
-    const shape = CanvasState.getShapes().find(s => s.ShapeID === shapeId);
-    if (!shape) return;
-    _selectedStroke = shape.StrokeColor || shape.Color || PALETTE[0];
-    _selectedFill   = shape.FillColor   || shape.Color || PALETTE[0];
-    _updateActiveSwatches('swatch-grid-stroke', _selectedStroke);
-    _updateActiveSwatches('swatch-grid-fill',   _selectedFill);
-    document.getElementById('prop-shape-width').value  = shape.Width;
-    document.getElementById('prop-shape-height').value = shape.Height;
-  }
-
-  function _updateActiveSwatches(containerId, color) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.querySelectorAll('.prop-swatch').forEach(s => {
-      s.classList.toggle('active', s.dataset.color.toLowerCase() === color.toLowerCase());
-    });
-  }
-
-  // ── Apply helpers ─────────────────────────────────────────────────
   function _applyCanvasForm() {
     CanvasState.updateCanvas({
-      BackgroundColor:  _selectedBg,
+      BackgroundColor:  _sel.bg,
       GridVisible:      document.getElementById('prop-grid-visible').checked,
-      GridColor:        _selectedGrid,
+      GridColor:        _sel.grid,
       GridSpacingX:     parseInt(document.getElementById('prop-grid-x').value, 10),
       GridSpacingY:     parseInt(document.getElementById('prop-grid-y').value, 10),
       ShowOriginMarker: document.getElementById('prop-show-origin').checked,
@@ -385,50 +334,84 @@ const PropertiesModal = (() => {
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
   }
 
-  function _applyRectForm() {
-    const hx = parseFloat(document.getElementById('prop-rect-hover-x').value);
-    const hy = parseFloat(document.getElementById('prop-rect-hover-y').value);
-    const px = parseFloat(document.getElementById('prop-rect-protect-x').value);
-    const py = parseFloat(document.getElementById('prop-rect-protect-y').value);
+  // ── Rectangle global defaults populate/apply ──────────────────────────────
+  function _populateRectangleForm() {
+    const gv = CanvasState.getGlobalVars().rectangle;
+    _sel.rectFill          = gv.defaultFillColor;
+    _sel.rectStroke        = gv.defaultStrokeColor;
+    _sel.rectResizeDefault = gv.resizeControlPointDefaultColor;
+    _sel.rectResizeHover   = gv.resizeControlPointHoverColor;
+    _updateActiveSwatches('swatch-rect-fill',           _sel.rectFill);
+    _updateActiveSwatches('swatch-rect-stroke',         _sel.rectStroke);
+    _updateActiveSwatches('swatch-rect-resize-default', _sel.rectResizeDefault);
+    _updateActiveSwatches('swatch-rect-resize-hover',   _sel.rectResizeHover);
+    document.getElementById('prop-rect-hover-ratio').value      = gv.hoverPaddingRatio;
+    document.getElementById('prop-rect-protection-ratio').value = gv.protectionPaddingRatio;
+  }
 
-    // M3 validation: ProtectionPadding must be > HoverPadding
-    if (px <= hx || py <= hy) {
-      alert('Validation error: ProtectionPaddingRatio must be greater than HoverPaddingRatio on both axes.');
+  function _applyRectangleForm() {
+    const hRatio = parseFloat(document.getElementById('prop-rect-hover-ratio').value);
+    const pRatio = parseFloat(document.getElementById('prop-rect-protection-ratio').value);
+    if (pRatio <= hRatio) {
+      document.getElementById('rect-padding-hint').style.color = '#f87171';
+      alert('Protection Padding Ratio must be greater than Hover Padding Ratio.');
       return;
     }
-    CanvasState.updateGlobalVars({ Rectangle: {
-      DefaultFillColor:         _selectedRectFill,
-      DefaultStrokeColor:       _selectedRectStroke,
-      ControlPointColorDefault: _selectedRectCpDefault,
-      ControlPointColorActive:  _selectedRectCpActive,
-      HoverPaddingXRatio:       hx,
-      HoverPaddingYRatio:       hy,
-      ProtectionPaddingXRatio:  px,
-      ProtectionPaddingYRatio:  py,
-    }});
-    if (typeof DirtyTracker !== 'undefined') DirtyTracker.markDirty();
-    console.log('[PropertiesModal] Rectangle global vars applied.');
+    document.getElementById('rect-padding-hint').style.color = '';
+    CanvasState.updateGlobalVar('rectangle', {
+      defaultFillColor:              _sel.rectFill,
+      defaultStrokeColor:            _sel.rectStroke,
+      hoverPaddingRatio:             hRatio,
+      protectionPaddingRatio:        pRatio,
+      resizeControlPointDefaultColor: _sel.rectResizeDefault,
+      resizeControlPointHoverColor:  _sel.rectResizeHover,
+    });
+  }
+
+  // ── Circle global defaults populate/apply ─────────────────────────────────
+  function _populateCircleForm() {
+    const gv = CanvasState.getGlobalVars().circle;
+    _sel.circleFill          = gv.defaultFillColor;
+    _sel.circleStroke        = gv.defaultStrokeColor;
+    _sel.circleResizeDefault = gv.resizeControlPointDefaultColor;
+    _sel.circleResizeHover   = gv.resizeControlPointHoverColor;
+    _updateActiveSwatches('swatch-circle-fill',           _sel.circleFill);
+    _updateActiveSwatches('swatch-circle-stroke',         _sel.circleStroke);
+    _updateActiveSwatches('swatch-circle-resize-default', _sel.circleResizeDefault);
+    _updateActiveSwatches('swatch-circle-resize-hover',   _sel.circleResizeHover);
+    document.getElementById('prop-circle-hover-ratio').value      = gv.hoverPaddingRatio;
+    document.getElementById('prop-circle-protection-ratio').value = gv.protectionPaddingRatio;
   }
 
   function _applyCircleForm() {
-    const h = parseFloat(document.getElementById('prop-circle-hover').value);
-    const p = parseFloat(document.getElementById('prop-circle-protect').value);
-
-    // M3 validation: ProtectionPadding must be > HoverPadding
-    if (p <= h) {
-      alert('Validation error: ProtectionPaddingRadiusRatio must be greater than HoverPaddingRadiusRatio.');
+    const hRatio = parseFloat(document.getElementById('prop-circle-hover-ratio').value);
+    const pRatio = parseFloat(document.getElementById('prop-circle-protection-ratio').value);
+    if (pRatio <= hRatio) {
+      document.getElementById('circle-padding-hint').style.color = '#f87171';
+      alert('Protection Padding Ratio must be greater than Hover Padding Ratio.');
       return;
     }
-    CanvasState.updateGlobalVars({ Circle: {
-      DefaultFillColor:          _selectedCircleFill,
-      DefaultStrokeColor:        _selectedCircleStroke,
-      ControlPointColorDefault:  _selectedCircleCpDefault,
-      ControlPointColorActive:   _selectedCircleCpActive,
-      HoverPaddingRadiusRatio:   h,
-      ProtectionPaddingRadiusRatio: p,
-    }});
-    if (typeof DirtyTracker !== 'undefined') DirtyTracker.markDirty();
-    console.log('[PropertiesModal] Circle global vars applied.');
+    document.getElementById('circle-padding-hint').style.color = '';
+    CanvasState.updateGlobalVar('circle', {
+      defaultFillColor:              _sel.circleFill,
+      defaultStrokeColor:            _sel.circleStroke,
+      hoverPaddingRatio:             hRatio,
+      protectionPaddingRatio:        pRatio,
+      resizeControlPointDefaultColor: _sel.circleResizeDefault,
+      resizeControlPointHoverColor:  _sel.circleResizeHover,
+    });
+  }
+
+  // ── Individual shape form populate/apply ──────────────────────────────────
+  function _populateShapeForm(shapeId) {
+    const shape = CanvasState.getShapes().find(s => s.ShapeID === shapeId);
+    if (!shape) return;
+    _sel.stroke = shape.StrokeColor || shape.Color || PALETTE[0];
+    _sel.fill   = shape.FillColor   || shape.Color || PALETTE[0];
+    _updateActiveSwatches('swatch-grid-stroke', _sel.stroke);
+    _updateActiveSwatches('swatch-grid-fill',   _sel.fill);
+    document.getElementById('prop-shape-width').value  = shape.Width;
+    document.getElementById('prop-shape-height').value = shape.Height;
   }
 
   function _applyShapeForm() {
@@ -439,27 +422,25 @@ const PropertiesModal = (() => {
 
     let newSvg = shape.SvgIcon;
     if (newSvg) {
-      newSvg = newSvg.replace(/fill="([^"]*)"/g, (match, p1) => {
-        if (p1 === 'none' || p1 === 'currentColor' || p1 === '') return match;
-        return `fill="${_selectedFill}"`;
-      });
-      newSvg = newSvg.replace(/stroke="([^"]*)"/g, (match, p1) => {
-        if (p1 === 'none' || p1 === 'currentColor' || p1 === '') return match;
-        return `stroke="${_selectedStroke}"`;
-      });
+      newSvg = newSvg.replace(/fill="([^"]*)"/g,   (m, p) => p === 'none' || p === 'currentColor' ? m : `fill="${_sel.fill}"`);
+      newSvg = newSvg.replace(/stroke="([^"]*)"/g, (m, p) => p === 'none' || p === 'currentColor' ? m : `stroke="${_sel.stroke}"`);
     }
-
     CanvasState.updateShape(_activeShapeId, {
       Width: w, Height: h,
-      StrokeColor: _selectedStroke,
-      FillColor:   _selectedFill,
-      Color:       _selectedFill,
-      SvgIcon:     newSvg,
+      StrokeColor: _sel.stroke, FillColor: _sel.fill,
+      Color: _sel.fill, SvgIcon: newSvg,
     });
-
     RenderCanvas.render();
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
-    if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
+  }
+
+  // ── Swatch highlight helper ───────────────────────────────────────────────
+  function _updateActiveSwatches(containerId, color) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.prop-swatch').forEach(s => {
+      s.classList.toggle('active', s.dataset.color.toLowerCase() === (color || '').toLowerCase());
+    });
   }
 
   return { init, openForCanvas, openForShape, close };
