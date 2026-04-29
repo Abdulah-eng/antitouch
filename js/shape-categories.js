@@ -19,6 +19,24 @@ const ShapeCategories = (() => {
 
   // ── SVG helpers ────────────────────────────────────────────────────────────
 
+  function _svgLine(c = '#10b981') {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="6" y1="20" x2="34" y2="20" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  function _svgCircle(c = '#6366f1') {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="14" fill="${c}" fill-opacity="0.1" stroke="${c}" stroke-width="2"/>
+    </svg>`;
+  }
+
+  function _svgRectangle(c = '#f59e0b') {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="10" width="28" height="20" fill="${c}" fill-opacity="0.1" stroke="${c}" stroke-width="2"/>
+    </svg>`;
+  }
+
   /** Dashed rectangle — used for AWS boundary shapes */
   function _awsBoundaryRect(color, label) {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -56,6 +74,13 @@ const ShapeCategories = (() => {
 
   const _categories = [
     {
+      id:           'basic-shapes',
+      name:         'Basic Shapes',
+      icon:         _svgRectangle('#6366f1'),
+      displayOrder: 0,
+      isPlaceholder: false,
+    },
+    {
       id:           'aws',
       name:         'AWS',
       icon:         _awsBoundaryRect('#f59e0b', 'AWS'),
@@ -83,6 +108,46 @@ const ShapeCategories = (() => {
   // ── Items per category ────────────────────────────────────────────────────
 
   const _itemsByCategory = {
+
+    // ── Basic Shapes ───────────────────────────────────────────────
+    'basic-shapes': [
+      {
+        id:         'shape-line',
+        type:       'line',
+        label:      'Line',
+        categoryId: 'basic-shapes',
+        parentType: null,
+        svgIcon:    _svgLine('#10b981'),
+        defaultWidth:  80,
+        defaultHeight: 0,
+        fillColor:  '#10b981',
+        strokeColor:'#10b981',
+      },
+      {
+        id:         'shape-circle',
+        type:       'circle',
+        label:      'Circle',
+        categoryId: 'basic-shapes',
+        parentType: null,
+        svgIcon:    _svgCircle('#6366f1'),
+        defaultWidth:  80,
+        defaultHeight: 80,
+        fillColor:  '#6366f1',
+        strokeColor:'#6366f1',
+      },
+      {
+        id:         'shape-rectangle',
+        type:       'rectangle',
+        label:      'Rectangle',
+        categoryId: 'basic-shapes',
+        parentType: null,
+        svgIcon:    _svgRectangle('#f59e0b'),
+        defaultWidth:  100,
+        defaultHeight: 60,
+        fillColor:  '#f59e0b',
+        strokeColor:'#f59e0b',
+      },
+    ],
 
     // ── AWS ────────────────────────────────────────────────────────
     'aws': [
