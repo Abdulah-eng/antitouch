@@ -324,14 +324,23 @@ const RenderShapes = (() => {
   function _renderLabel(g, shape, pos, zoom, type) {
     const text = document.createElementNS(NS, 'text');
     let yOff = 0;
-    if (type === 'line') {
+    let xOff = 0;
+    let textAnchor = 'middle';
+
+    if (type.startsWith('aws-')) {
+      // AWS style: Top-left inner corner
+      yOff = -(shape.Height / 2 * zoom) + 16 * zoom;
+      xOff = -(shape.Width / 2 * zoom) + 10 * zoom;
+      textAnchor = 'start';
+    } else if (type === 'line') {
       yOff = Math.abs(shape.Height / 2) * zoom + 16 * zoom;
     } else {
       yOff = (shape.Height * zoom) / 2 + 16 * zoom;
     }
-    text.setAttribute('x', pos.x);
+
+    text.setAttribute('x', pos.x + xOff);
     text.setAttribute('y', pos.y + yOff);
-    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('text-anchor', textAnchor);
     text.setAttribute('fill', '#475569');
     text.style.fontFamily    = 'Inter, system-ui, sans-serif';
     text.style.fontSize      = (12 * zoom) + 'px';
