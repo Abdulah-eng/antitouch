@@ -97,6 +97,10 @@ function _setupToolbarV2() {
     };
   }
 
+  if (btnListDb && typeof MultiDiagramLoader !== 'undefined') {
+    btnListDb.onclick = () => MultiDiagramLoader.callListDiagramsApi();
+  }
+
   if (btnNew) {
     btnNew.onclick = () => {
       if (confirm('Clear the current diagram? Unsaved changes will be lost.')) {
