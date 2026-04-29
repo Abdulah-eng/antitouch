@@ -91,6 +91,38 @@ const ContextMenuController = (() => {
       e.stopPropagation();
       ctxMenu.classList.add('hidden');
       if (_lastTargetShapeId) {
+        // ── Check if shape has dependent children ──
+        const allShapes = CanvasState.getShapes();
+        const shapeToDelete = allShapes.find(s => s.ShapeID === _lastTargetShapeId);
+        
+        if (shapeToDelete && typeof ShapeCategories !== 'undefined') {
+          const hasChild = allShapes.some(child => {
+            if (child.ShapeID === shapeToDelete.ShapeID) return false;
+            
+            const childDef = ShapeCategories.getItemByType(child.Type);
+            if (!childDef || !childDef.parentType) return false;
+            
+            const allowedParents = Array.isArray(childDef.parentType) ? childDef.parentType : [childDef.parentType];
+            if (!allowedParents.includes(shapeToDelete.Type)) return false;
+            
+            // Check containment
+            const hw = shapeToDelete.Width / 2;
+            const hh = shapeToDelete.Height / 2;
+            const inside = (
+              child.WorldX >= shapeToDelete.WorldX - hw && child.WorldX <= shapeToDelete.WorldX + hw &&
+              child.WorldY >= shapeToDelete.WorldY - hh && child.WorldY <= shapeToDelete.WorldY + hh
+            );
+            return inside;
+          });
+          
+          if (hasChild) {
+            const def = ShapeCategories.getItemByType(shapeToDelete.Type);
+            const label = def ? def.label : 'This shape';
+            alert(`Cannot delete ${label} because it contains child resources. Please remove them first.`);
+            return;
+          }
+        }
+
         CanvasState.removeShape(_lastTargetShapeId);
         CanvasState.selectShape(null);
         if (typeof HistoryManager  !== 'undefined') HistoryManager.recordState();
