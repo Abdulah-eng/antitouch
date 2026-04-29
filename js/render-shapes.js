@@ -52,7 +52,7 @@ const RenderShapes = (() => {
         _renderCircle(g, shape, pos, zoom, isSelected, isHovered);
         break;
       default:
-        _renderRect(g, shape, pos, zoom, isSelected, isHovered);
+        _renderRect(g, shape, pos, zoom, isSelected, isHovered, type);
     }
 
     // 2. Icon (Nested SVG — non-primitives only)
@@ -72,9 +72,22 @@ const RenderShapes = (() => {
   }
 
   // ── Rectangle ────────────────────────────────────────────────
-  function _renderRect(g, shape, pos, zoom, isSelected, isHovered) {
+  function _renderRect(g, shape, pos, zoom, isSelected, isHovered, type) {
     const w = shape.Width  * zoom;
     const h = shape.Height * zoom;
+
+    let fillOpacity = '1.0';
+    let rx = 0;
+    let strokeDash = 'none';
+
+    if (type === 'aws-region' || type === 'aws-vpc' || type === 'aws-availability-zone') {
+       fillOpacity = '0.12';
+       rx = 4 * zoom;
+       strokeDash = `${6 * zoom} ${4 * zoom}`;
+    } else if (type === 'aws-route-table') {
+       fillOpacity = '0.18';
+       rx = 6 * zoom;
+    }
 
     const rect = document.createElementNS(NS, 'rect');
     rect.setAttribute('x',            pos.x - w / 2);
@@ -82,11 +95,14 @@ const RenderShapes = (() => {
     rect.setAttribute('width',        w);
     rect.setAttribute('height',       h);
     rect.setAttribute('fill',         shape.FillColor || shape.Color || '#6366f1');
-    rect.setAttribute('fill-opacity', '1.0');
-    rect.setAttribute('rx',           0);
-    rect.setAttribute('ry',           0);
+    rect.setAttribute('fill-opacity', fillOpacity);
+    rect.setAttribute('rx',           rx);
+    rect.setAttribute('ry',           rx);
     rect.setAttribute('stroke',       shape.StrokeColor || shape.Color || '#6366f1');
     rect.setAttribute('stroke-width', 1.5 * zoom);
+    if (strokeDash !== 'none') {
+      rect.setAttribute('stroke-dasharray', strokeDash);
+    }
     g.appendChild(rect);
 
     // Hover outline (subtle blue ring)
@@ -276,7 +292,10 @@ const RenderShapes = (() => {
   // ── Icon ─────────────────────────────────────────────────────
   function _renderIcon(g, shape, pos, zoom) {
     const typeString = (shape.Type || 'rectangle').toLowerCase();
-    const primitives = ['line', 'circle', 'rectangle', 'rect', 'ellipse', 'cylinder', 'database'];
+    const primitives = [
+      'line', 'circle', 'rectangle', 'rect', 'ellipse', 'cylinder', 'database',
+      'aws-region', 'aws-vpc', 'aws-availability-zone', 'aws-route-table'
+    ];
     if (primitives.includes(typeString)) return;
 
     const iconSize    = Math.min(shape.Width, shape.Height) * zoom * 0.55;
