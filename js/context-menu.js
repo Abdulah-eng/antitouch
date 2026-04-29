@@ -70,7 +70,11 @@ const ContextMenuController = (() => {
     });
 
     // Close menu on outside click or scroll
-    document.addEventListener('click', () => ctxMenu.classList.add('hidden'));
+    document.addEventListener('pointerdown', (e) => {
+      if (!ctxMenu.contains(e.target)) {
+        ctxMenu.classList.add('hidden');
+      }
+    });
 
     // Edit Properties action
     btnEditProps.addEventListener('click', (e) => {

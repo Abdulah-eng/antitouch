@@ -216,7 +216,7 @@ const ShapeCategories = (() => {
         type:       'aws-route-table',
         label:      'Route Table',
         categoryId: 'aws',
-        parentType: 'aws-availability-zone', // must be inside an AZ
+        parentType: ['aws-availability-zone', 'aws-vpc'], // must be inside an AZ or VPC
         svgIcon:    _svgAwsRouteTable('#10b981'),
         defaultWidth:  140,
         defaultHeight: 80,

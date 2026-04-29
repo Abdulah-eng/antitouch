@@ -128,8 +128,8 @@ const DropHandler = (() => {
     toast.textContent = message;
     document.body.appendChild(toast);
 
-    // Auto-dismiss after 3 seconds
-    setTimeout(() => toast.remove(), 3000);
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => toast.remove(), 10000);
   }
 
   function _obj(s) {

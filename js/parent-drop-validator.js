@@ -52,18 +52,23 @@ const ParentDropValidator = (() => {
     // ── Child shape: must be dropped inside its required parent ───
     const shapes = CanvasState.getShapes();
 
+    const requiredTypes = Array.isArray(parentType) ? parentType : [parentType];
+
     // Find shapes of the required parent type that contain the drop point
     const validParents = shapes.filter(s => {
-      if (s.Type !== parentType) return false;
+      if (!requiredTypes.includes(s.Type)) return false;
       return _pointInsideShape(worldX, worldY, s);
     });
 
     if (validParents.length === 0) {
-      const parentDef = ShapeCategories.getItemByType(parentType);
-      const parentLabel = parentDef ? parentDef.label : parentType;
+      const parentLabels = requiredTypes.map(t => {
+        const pDef = ShapeCategories.getItemByType(t);
+        return pDef ? `"${pDef.label}"` : `"${t}"`;
+      }).join(' or ');
+
       return {
         ok: false,
-        reason: `"${itemDef.label}" must be placed inside a "${parentLabel}". Drop it inside the parent boundary.`,
+        reason: `"${itemDef.label}" must be placed inside a ${parentLabels}. Drop it inside the parent boundary.`,
       };
     }
 
