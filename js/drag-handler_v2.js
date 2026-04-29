@@ -195,16 +195,22 @@ const DragHandler = (() => {
 
   function _obj(s) {
     const t = (s.Type || 'rectangle').toLowerCase();
-    if (t === 'rectangle') return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
-    if (t === 'circle' || t === 'ellipse') return { type: 'circle', cx: s.WorldX, cy: s.WorldY, r: s.Width / 2 };
-    if (t === 'line') return { 
-      type: 'line', 
-      x1: s.WorldX - s.Width/2, 
-      y1: s.WorldY - s.Height/2, 
-      x2: s.WorldX + s.Width/2, 
-      y2: s.WorldY + s.Height/2 
-    };
-    return s;
+    if (t === 'rectangle' || t.startsWith('aws-') || t === 'database' || t === 'service') {
+      return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
+    }
+    if (t === 'circle' || t === 'ellipse') {
+      return { type: 'circle', cx: s.WorldX, cy: s.WorldY, r: s.Width / 2 };
+    }
+    if (t === 'line') {
+      return { 
+        type: 'line', 
+        x1: s.WorldX - s.Width/2, 
+        y1: s.WorldY - s.Height/2, 
+        x2: s.WorldX + s.Width/2, 
+        y2: s.WorldY + s.Height/2 
+      };
+    }
+    return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
   }
 
   function _getCursorForHandle(h) {

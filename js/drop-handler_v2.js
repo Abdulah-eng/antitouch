@@ -83,6 +83,25 @@ const DropHandler = (() => {
       SvgIcon:     payload.svgIcon,
     };
 
+    // ── Collision Check before drop ───────────────────────────────
+    if (typeof Collision !== 'undefined') {
+      const allShapes = CanvasState.getShapes();
+      const dropObj = _obj(newShape);
+      let collided = false;
+      
+      for (const other of allShapes) {
+        if (Collision.checkCollision(dropObj, _obj(other))) {
+          collided = true;
+          break;
+        }
+      }
+      
+      if (collided) {
+        _showDropError("Shapes cannot overlap boundaries.");
+        return; // Block drop
+      }
+    }
+
     CanvasState.addShape(newShape);
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
     if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
@@ -111,6 +130,26 @@ const DropHandler = (() => {
 
     // Auto-dismiss after 3 seconds
     setTimeout(() => toast.remove(), 3000);
+  }
+
+  function _obj(s) {
+    const t = (s.Type || 'rectangle').toLowerCase();
+    if (t === 'rectangle' || t.startsWith('aws-') || t === 'database' || t === 'service') {
+      return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
+    }
+    if (t === 'circle' || t === 'ellipse') {
+      return { type: 'circle', cx: s.WorldX, cy: s.WorldY, r: s.Width / 2 };
+    }
+    if (t === 'line') {
+      return { 
+        type: 'line', 
+        x1: s.WorldX - s.Width/2, 
+        y1: s.WorldY - s.Height/2, 
+        x2: s.WorldX + s.Width/2, 
+        y2: s.WorldY + s.Height/2 
+      };
+    }
+    return { type: 'rectangle', x: s.WorldX - s.Width/2, y: s.WorldY - s.Height/2, width: s.Width, height: s.Height };
   }
 
   return { init };
