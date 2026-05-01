@@ -83,6 +83,30 @@ const ShapeCategories = (() => {
     </svg>`;
   }
 
+  function _svgAwsEc2(color) {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="6" width="28" height="28" rx="4" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="2"/>
+      <rect x="14" y="14" width="12" height="12" rx="2" fill="${color}" fill-opacity="0.3" stroke="${color}" stroke-width="1.5"/>
+      <text x="20" y="31" text-anchor="middle" font-size="6.5" fill="${color}" font-family="sans-serif" font-weight="600">EC2</text>
+    </svg>`;
+  }
+
+  function _svgAwsIgw(color) {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 6 16 L 20 6 L 34 16 L 34 32 L 6 32 Z" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M 12 24 L 28 24 M 20 16 L 20 28" stroke="${color}" stroke-width="1.5"/>
+      <text x="20" y="29" text-anchor="middle" font-size="6.5" fill="${color}" font-family="sans-serif" font-weight="600">IGW</text>
+    </svg>`;
+  }
+
+  function _svgAwsNat(color) {
+    return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 6 L 34 20 L 20 34 L 6 20 Z" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M 14 20 L 26 20 M 23 17 L 26 20 L 23 23" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="20" y="27" text-anchor="middle" font-size="6.5" fill="${color}" font-family="sans-serif" font-weight="600">NAT</text>
+    </svg>`;
+  }
+
   /** Coming Soon placeholder */
   function _placeholderRect(color) {
     return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -180,7 +204,7 @@ const ShapeCategories = (() => {
         type:       'aws-region',
         label:      'Region',
         categoryId: 'aws',
-        parentType: null,           // drops directly on canvas root
+        parentType: null,           // overridden by CSV
         svgIcon:    _svgAwsRegion('#f59e0b'),
         defaultWidth:  360,
         defaultHeight: 280,
@@ -192,7 +216,7 @@ const ShapeCategories = (() => {
         type:       'aws-vpc',
         label:      'VPC',
         categoryId: 'aws',
-        parentType: 'aws-region',  // must be inside a Region
+        parentType: null,  // overridden by CSV
         svgIcon:    _svgAwsVpc('#6366f1'),
         defaultWidth:  280,
         defaultHeight: 220,
@@ -204,7 +228,7 @@ const ShapeCategories = (() => {
         type:       'aws-availability-zone',
         label:      'Availability Zone',
         categoryId: 'aws',
-        parentType: 'aws-vpc',     // must be inside a VPC
+        parentType: null,     // overridden by CSV
         svgIcon:    _svgAwsAz('#0ea5e9'),
         defaultWidth:  200,
         defaultHeight: 160,
@@ -216,10 +240,46 @@ const ShapeCategories = (() => {
         type:       'aws-route-table',
         label:      'Route Table',
         categoryId: 'aws',
-        parentType: ['aws-availability-zone', 'aws-vpc'], // must be inside an AZ or VPC
+        parentType: null, // overridden by CSV
         svgIcon:    _svgAwsRouteTable('#10b981'),
         defaultWidth:  140,
         defaultHeight: 80,
+        fillColor:  '#10b981',
+        strokeColor:'#10b981',
+      },
+      {
+        id:         'aws-ec2',
+        type:       'aws-ec2',
+        label:      'EC2',
+        categoryId: 'aws',
+        parentType: null, // overridden by CSV
+        svgIcon:    _svgAwsEc2('#f59e0b'),
+        defaultWidth:  60,
+        defaultHeight: 60,
+        fillColor:  '#f59e0b',
+        strokeColor:'#f59e0b',
+      },
+      {
+        id:         'aws-igw',
+        type:       'aws-igw',
+        label:      'Internet Gateway',
+        categoryId: 'aws',
+        parentType: null, // overridden by CSV
+        svgIcon:    _svgAwsIgw('#8b5cf6'), // Purple
+        defaultWidth:  60,
+        defaultHeight: 60,
+        fillColor:  '#8b5cf6',
+        strokeColor:'#8b5cf6',
+      },
+      {
+        id:         'aws-nat',
+        type:       'aws-nat',
+        label:      'NAT Gateway',
+        categoryId: 'aws',
+        parentType: null, // overridden by CSV
+        svgIcon:    _svgAwsNat('#10b981'), // Green
+        defaultWidth:  60,
+        defaultHeight: 60,
         fillColor:  '#10b981',
         strokeColor:'#10b981',
       },
@@ -286,6 +346,14 @@ const ShapeCategories = (() => {
     return null;
   }
 
+  function getAllItems() {
+    let all = [];
+    for (const items of Object.values(_itemsByCategory)) {
+      all = all.concat(items);
+    }
+    return all;
+  }
+
   return {
     loadShapeCategories,
     getCategoryItems,
@@ -293,6 +361,7 @@ const ShapeCategories = (() => {
     getCategoryCount,
     sortShapeCategories,
     getItemByType,
+    getAllItems,
   };
 
 })();

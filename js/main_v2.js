@@ -15,7 +15,7 @@
 
 'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('[Main] APPLICATION BOOTSTRAP - Version M2.1');
 
@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   RenderCanvas.init();
+
+  // ── 2.5. Load Hierarchy Constraints ─────────────────────────────
+  if (typeof HierarchyLoader !== 'undefined') {
+    await HierarchyLoader.load();
+  }
 
   // ── 3. Shapes Panel (BUG-02 fix — was never called from here) ───
   if (typeof RenderShapesPanel !== 'undefined') {
