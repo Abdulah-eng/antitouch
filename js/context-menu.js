@@ -20,8 +20,12 @@ const ContextMenuController = (() => {
           <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           <span id="ctx-edit-props-label">Edit Properties</span>
         </div>
+        <div class="context-menu-item" id="ctx-connect-to" style="display:none;">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Connect To...</span>
+        </div>
         <div class="context-menu-item context-menu-item--danger" id="ctx-delete-shape" style="display:none;">
-          <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span>Delete Shape</span>
         </div>
       </div>
@@ -30,6 +34,7 @@ const ContextMenuController = (() => {
 
     const ctxMenu      = document.getElementById('app-context-menu');
     const btnEditProps = document.getElementById('ctx-edit-props');
+    const btnConnect   = document.getElementById('ctx-connect-to');
     const btnDelete    = document.getElementById('ctx-delete-shape');
     const labelProps   = document.getElementById('ctx-edit-props-label');
 
@@ -54,12 +59,14 @@ const ContextMenuController = (() => {
         CanvasState.selectShape(_lastTargetShapeId);
         RenderCanvas.render();
         labelProps.textContent = 'Edit Shape Properties';
+        btnConnect.style.display = 'flex';
         btnDelete.style.display = 'flex';
       } else {
         _lastTargetShapeId = null;
         CanvasState.selectShape(null);
         RenderCanvas.render();
         labelProps.textContent = 'Edit Canvas Properties';
+        btnConnect.style.display = 'none';
         btnDelete.style.display = 'none';
       }
 
@@ -83,6 +90,15 @@ const ContextMenuController = (() => {
       if (typeof PropertiesModal !== 'undefined') {
         if (_lastTargetShapeId) PropertiesModal.openForShape(_lastTargetShapeId);
         else                    PropertiesModal.openForCanvas();
+      }
+    });
+
+    // Connect To action (M7)
+    btnConnect.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ctxMenu.classList.add('hidden');
+      if (_lastTargetShapeId && typeof ConnectToMode !== 'undefined') {
+        ConnectToMode.start(_lastTargetShapeId);
       }
     });
 

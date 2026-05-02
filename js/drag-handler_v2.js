@@ -96,9 +96,24 @@ const DragHandler = (() => {
           changes.Height = sP1Y - nP2Y;
         }
       } else if (type === 'circle' || type === 'ellipse') {
-        const dist = Math.sqrt((currentWorldPos.x - _shapeSnapshot.WorldX)**2 + (currentWorldPos.y - _shapeSnapshot.WorldY)**2);
-        changes.Width  = dist * 2;
-        changes.Height = dist * 2;
+        if (typeof CircleResize !== 'undefined') {
+          const handleMap = { 'n': 'TopResizeControlPoint', 's': 'BottomResizeControlPoint', 'e': 'RightResizeControlPoint', 'w': 'LeftResizeControlPoint' };
+          const mappedHandle = handleMap[_activeHandle];
+          if (mappedHandle) {
+             const tempCircle = { type: 'circle', Radius: _shapeSnapshot.Radius || _shapeSnapshot.Width/2 };
+             CircleResize.handleResizeTick(tempCircle, dx, dy, mappedHandle);
+             changes.Radius = CircleInteractionState.temporaryCandidateRadius;
+             // Maintain backward compat width/height for other render logic if any
+             changes.Width = changes.Radius * 2;
+             changes.Height = changes.Radius * 2;
+          }
+        } else {
+          // Fallback if M6 not loaded
+          const dist = Math.sqrt((currentWorldPos.x - _shapeSnapshot.WorldX)**2 + (currentWorldPos.y - _shapeSnapshot.WorldY)**2);
+          changes.Radius = dist;
+          changes.Width  = dist * 2;
+          changes.Height = dist * 2;
+        }
       } else {
         const sw = _shapeSnapshot.Width;
         const sh = _shapeSnapshot.Height;
@@ -176,13 +191,26 @@ const DragHandler = (() => {
           WorldX: _shapeSnapshot.WorldX,
           WorldY: _shapeSnapshot.WorldY,
           Width:  _shapeSnapshot.Width,
-          Height: _shapeSnapshot.Height
+          Height: _shapeSnapshot.Height,
+          Radius: _shapeSnapshot.Radius
         });
         RenderCanvas.render();
       } else if (_hasMoved) {
         // Successful, non-colliding move -> Record state and mark dirty
         if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
         if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
+        
+        // Dispatch M6 / M7 Events
+        const type = (finalShape.Type || 'rectangle').toLowerCase();
+        if (type === 'circle' || type === 'ellipse') {
+          if (typeof CircleEvents !== 'undefined') {
+             if (_activeHandle === 'move') {
+               CircleEvents.dispatchMoved(finalShape.ShapeID);
+             } else {
+               CircleEvents.dispatchResized(finalShape.ShapeID);
+             }
+          }
+        }
       }
     }
 

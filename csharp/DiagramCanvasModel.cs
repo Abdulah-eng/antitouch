@@ -54,5 +54,6 @@ namespace Antitouch.Models
         public bool IsDeleted { get; set; } = false;
 
         public List<DiagramShapeModel> Shapes { get; set; } = new List<DiagramShapeModel>();
+        public List<DiagramConnectionModel> Connections { get; set; } = new List<DiagramConnectionModel>();
     }
 }

@@ -1,0 +1,4 @@
+SourceDeviceType,DestinationDeviceType,PossibleConnections
+Rectangle,Rectangle,One line OR Two lines OR Three lines OR Four lines
+Rectangle,Circle,One line OR Two lines OR Three lines OR Four lines
+AWS VPC,AWS VPC,IPsec tunnel OR VPC Peer link

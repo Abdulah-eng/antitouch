@@ -48,7 +48,11 @@ const RenderCanvas = (() => {
     if (canvas.GridVisible) RenderGrid.render(svgLayer, canvas, width, height);
     if (canvas.ShowAxes) RenderAxes.render(svgLayer, canvas, width, height);
     if (canvas.ShowOriginMarker) RenderOrigin.render(svgLayer, canvas, width, height);
-    
+    // Connections (draw underneath shapes)
+    if (typeof RenderConnections !== 'undefined') {
+      RenderConnections.render(svgLayer, CanvasState.getActiveDiagram(), canvas.ZoomScale, width, height);
+    }
+
     // Multi-shape rendering
     RenderShapes.render(svgLayer, canvas, width, height);
     

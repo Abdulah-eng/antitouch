@@ -109,10 +109,11 @@ const CanvasState = (() => {
           ZoomEnabled: c.ZoomEnabled !== undefined ? c.ZoomEnabled : true,
         },
 
-        Shapes: config.Shapes || []
+        Shapes: config.Shapes || [],
+        Connections: config.Connections || []
       };
 
-      console.log('[CanvasState] State Initialized — Shapes:', activeDiagram.Shapes.length);
+      console.log(`[CanvasState] State Initialized — Shapes: ${activeDiagram.Shapes.length}, Connections: ${activeDiagram.Connections.length}`);
       return true;
 
     } catch (err) {

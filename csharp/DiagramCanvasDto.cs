@@ -35,5 +35,6 @@ namespace Antitouch.Models
         public int DiagramVersion { get; set; }
 
         public List<DiagramShapeDto> Shapes { get; set; } = new List<DiagramShapeDto>();
+        public List<ConnectionDto> Connections { get; set; } = new List<ConnectionDto>();
     }
 }

@@ -23,6 +23,11 @@ namespace Antitouch.Data
         public DbSet<DiagramShapeModel>      DiagramShapes     { get; set; } = null!;
         public DbSet<ShapeHierarchyModel>    ShapeHierarchies  { get; set; } = null!;
 
+        public DbSet<DiagramConnectionModel> DiagramConnections { get; set; } = null!;
+        public DbSet<DiagramConnectionDetailModel> DiagramConnectionDetails { get; set; } = null!;
+        public DbSet<ConnectionTypeLookupModel> ConnectionTypeLookups { get; set; } = null!;
+        public DbSet<ConnectionStyleDefaultModel> ConnectionStyleDefaults { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -91,6 +96,28 @@ namespace Antitouch.Data
                 entity.Property(h => h.CloudProvider).HasMaxLength(20);
                 // Only active entries participate in drop validation
                 entity.HasQueryFilter(h => h.IsActive);
+            });
+
+            // ── Connections ──────────────────────────────────────────
+            modelBuilder.Entity<DiagramConnectionModel>(entity =>
+            {
+                entity.HasKey(c => c.ConnectionID);
+                entity.HasQueryFilter(c => !c.IsDeleted);
+
+                entity.HasOne(c => c.Diagram)
+                      .WithMany(d => d.Connections)
+                      .HasForeignKey(c => c.DiagramID)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.Detail)
+                      .WithOne(d => d.Connection)
+                      .HasForeignKey<DiagramConnectionDetailModel>(d => d.ConnectionID)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<DiagramConnectionDetailModel>(entity =>
+            {
+                entity.HasKey(d => d.ConnectionDetailID);
             });
         }
     }

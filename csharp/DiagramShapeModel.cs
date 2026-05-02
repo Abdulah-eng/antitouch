@@ -20,6 +20,18 @@ namespace Antitouch.Models
         public string SvgIcon { get; set; } = string.Empty;
         public bool IsDeleted { get; set; } = false;
 
+        // Milestone 6 Circle Properties
+        public double? Radius { get; set; }
+        public int ZOrder { get; set; }
+        public string? FillType { get; set; }
+        public string? LineType { get; set; }
+        public double? LineWidth { get; set; }
+        public double? HoverPaddingRadiusRatio { get; set; }
+        public string? HoverPaddingColor { get; set; }
+        public double? ProtectionPaddingRadiusRatio { get; set; }
+        public string? ProtectionPaddingColor { get; set; }
+        public string? ParentContainerID { get; set; }
+
         // Foreign Key
         public string DiagramID { get; set; } = string.Empty;
         public DiagramModel? Diagram { get; set; }

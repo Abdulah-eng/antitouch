@@ -33,9 +33,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   RenderCanvas.init();
 
-  // ── 2.5. Load Hierarchy Constraints ─────────────────────────────
+  // ── 2.5. Load Hierarchy Constraints & M7 Lookups ────────────────
   if (typeof HierarchyLoader !== 'undefined') {
     await HierarchyLoader.load();
+  }
+  if (typeof ConnectionTypeLookupCsv !== 'undefined') {
+    await ConnectionTypeLookupCsv.load();
+  }
+  if (typeof ConnectionTypeLookupDb !== 'undefined') {
+    await ConnectionTypeLookupDb.load();
+  }
+  if (typeof GlobalConnectionDefaults !== 'undefined') {
+    await GlobalConnectionDefaults.load();
   }
 
   // ── 3. Shapes Panel (BUG-02 fix — was never called from here) ───
@@ -73,6 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof DropdownController    !== 'undefined') DropdownController.init();
   if (typeof PropertiesModal       !== 'undefined') PropertiesModal.init();
   if (typeof ContextMenuController !== 'undefined') ContextMenuController.init();
+  if (typeof ConnectionOptionsMenu !== 'undefined') ConnectionOptionsMenu.init();
   if (typeof DirtyTracker          !== 'undefined') DirtyTracker.init();
 
   // ── 9. Toolbar ──────────────────────────────────────────────────

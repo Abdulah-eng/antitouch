@@ -83,6 +83,16 @@ const DropHandler = (() => {
       SvgIcon:     payload.svgIcon,
     };
 
+    if (isCircle) {
+      const gv = CanvasState.getGlobalVars();
+      newShape.Radius = w / 2;
+      newShape.ZOrder = 1;
+      newShape.HoverPaddingRadiusRatio = gv.circle?.hoverPaddingRatio ?? 1.1;
+      newShape.ProtectionPaddingRadiusRatio = gv.circle?.protectionPaddingRatio ?? 1.2;
+      newShape.HoverPaddingColor = gv.circle?.resizeControlPointHoverColor ?? '#ffffff';
+      newShape.ProtectionPaddingColor = 'transparent';
+    }
+
     // ── Collision Check before drop ───────────────────────────────
     if (typeof Collision !== 'undefined') {
       const allShapes = CanvasState.getShapes();

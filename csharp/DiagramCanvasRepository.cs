@@ -60,6 +60,8 @@ namespace Antitouch.Services
             return await _db.Diagrams
                 .AsNoTracking()
                 .Include(d => d.Shapes)
+                .Include(d => d.Connections)
+                    .ThenInclude(c => c.Detail)
                 .FirstOrDefaultAsync(d => d.DiagramID == diagramId);
         }
 
@@ -91,6 +93,8 @@ namespace Antitouch.Services
                 // ── Diagram row ─────────────────────────────────────────────
                 var existingDiagram = await _db.Diagrams
                     .Include(d => d.Shapes)
+                    .Include(d => d.Connections)
+                        .ThenInclude(c => c.Detail)
                     .IgnoreQueryFilters()           // include soft-deleted to allow restore
                     .FirstOrDefaultAsync(d => d.DiagramID == diagram.DiagramID);
 
@@ -139,6 +143,63 @@ namespace Antitouch.Services
                             existing.StrokeColor = newShape.StrokeColor;
                             existing.FillColor = newShape.FillColor;
                             existing.SvgIcon = newShape.SvgIcon;
+                            existing.Radius = newShape.Radius;
+                            existing.ZOrder = newShape.ZOrder;
+                            existing.FillType = newShape.FillType;
+                            existing.LineType = newShape.LineType;
+                            existing.LineWidth = newShape.LineWidth;
+                            existing.HoverPaddingRadiusRatio = newShape.HoverPaddingRadiusRatio;
+                            existing.HoverPaddingColor = newShape.HoverPaddingColor;
+                            existing.ProtectionPaddingRadiusRatio = newShape.ProtectionPaddingRadiusRatio;
+                            existing.ProtectionPaddingColor = newShape.ProtectionPaddingColor;
+                            existing.ParentContainerID = newShape.ParentContainerID;
+                        }
+                    }
+
+                    // Sync connections: remove connections not in the new set
+                    var newConnIds = diagram.Connections.Select(c => c.ConnectionID).ToHashSet();
+                    var connsToRemove = existingDiagram.Connections
+                        .Where(c => !newConnIds.Contains(c.ConnectionID))
+                        .ToList();
+                    _db.DiagramConnections.RemoveRange(connsToRemove);
+
+                    // Add or update connections
+                    foreach (var newConn in diagram.Connections)
+                    {
+                        var existingConn = existingDiagram.Connections
+                            .FirstOrDefault(c => c.ConnectionID == newConn.ConnectionID);
+                        if (existingConn == null)
+                        {
+                            newConn.DiagramID = diagram.DiagramID;
+                            _db.DiagramConnections.Add(newConn);
+                        }
+                        else
+                        {
+                            existingConn.SourceItemID = newConn.SourceItemID;
+                            existingConn.SourceItemKind = newConn.SourceItemKind;
+                            existingConn.DestinationItemID = newConn.DestinationItemID;
+                            existingConn.DestinationItemKind = newConn.DestinationItemKind;
+                            existingConn.ConnectionType = newConn.ConnectionType;
+
+                            if (existingConn.Detail != null && newConn.Detail != null)
+                            {
+                                existingConn.Detail.ConnectionRouteType = newConn.Detail.ConnectionRouteType;
+                                existingConn.Detail.SourceJunctionPointID = newConn.Detail.SourceJunctionPointID;
+                                existingConn.Detail.DestinationJunctionPointID = newConn.Detail.DestinationJunctionPointID;
+                                existingConn.Detail.LineType = newConn.Detail.LineType;
+                                existingConn.Detail.LineColor = newConn.Detail.LineColor;
+                                existingConn.Detail.LineWidth = newConn.Detail.LineWidth;
+                                existingConn.Detail.ThicknessName = newConn.Detail.ThicknessName;
+                                existingConn.Detail.SourceJunctionText = newConn.Detail.SourceJunctionText;
+                                existingConn.Detail.DestinationJunctionText = newConn.Detail.DestinationJunctionText;
+                                existingConn.Detail.MiddleLineText = newConn.Detail.MiddleLineText;
+                                existingConn.Detail.IsDirectional = newConn.Detail.IsDirectional;
+                            }
+                            else if (newConn.Detail != null)
+                            {
+                                newConn.Detail.ConnectionID = existingConn.ConnectionID;
+                                existingConn.Detail = newConn.Detail;
+                            }
                         }
                     }
                 }

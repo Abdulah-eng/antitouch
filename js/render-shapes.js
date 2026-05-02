@@ -138,8 +138,9 @@ const RenderShapes = (() => {
 
   // ── Circle / Ellipse ─────────────────────────────────────────
   function _renderCircle(g, shape, pos, zoom, isSelected, isHovered) {
-    const rx = (shape.Width  / 2) * zoom;
-    const ry = (shape.Height / 2) * zoom;
+    const radius = shape.Radius ?? (shape.Width / 2);
+    const rx = radius * zoom;
+    const ry = radius * zoom;
 
     const el = document.createElementNS(NS, 'ellipse');
     el.setAttribute('cx',           pos.x);
@@ -251,9 +252,11 @@ const RenderShapes = (() => {
     const activeFill = gvType.resizeControlPointHoverColor;
 
     if (isCircle) {
-      const ry = (shape.Height / 2) * zoom;
-      _createHandle(g, pos.x,        pos.y - ry, 'n',  'ns-resize',   zoom, isSelected, activeFill);
-      _createHandle(g, pos.x,        pos.y + ry, 's',  'ns-resize',   zoom, isSelected, activeFill);
+      const radius = (shape.Radius ?? (shape.Width / 2)) * zoom;
+      _createHandle(g, pos.x,          pos.y - radius, 'n', 'n-resize', zoom, isSelected, activeFill); // Top
+      _createHandle(g, pos.x,          pos.y + radius, 's', 's-resize', zoom, isSelected, activeFill); // Bottom
+      _createHandle(g, pos.x - radius, pos.y,          'w', 'w-resize', zoom, isSelected, activeFill); // Left
+      _createHandle(g, pos.x + radius, pos.y,          'e', 'e-resize', zoom, isSelected, activeFill); // Right
     } else {
       const w = shape.Width  * zoom;
       const h = shape.Height * zoom;

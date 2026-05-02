@@ -75,7 +75,49 @@ namespace Antitouch.Services
                         Color = sDto.Color,
                         StrokeColor = sDto.StrokeColor,
                         FillColor = sDto.FillColor,
-                        SvgIcon = sDto.SvgIcon
+                        SvgIcon = sDto.SvgIcon,
+                        Radius = sDto.Radius,
+                        ZOrder = sDto.ZOrder,
+                        FillType = sDto.FillType,
+                        LineType = sDto.LineType,
+                        LineWidth = sDto.LineWidth,
+                        HoverPaddingRadiusRatio = sDto.HoverPaddingRadiusRatio,
+                        HoverPaddingColor = sDto.HoverPaddingColor,
+                        ProtectionPaddingRadiusRatio = sDto.ProtectionPaddingRadiusRatio,
+                        ProtectionPaddingColor = sDto.ProtectionPaddingColor,
+                        ParentContainerID = sDto.ParentContainerID
+                    });
+                }
+            }
+
+            // 2.6 Map Connections
+            if (dto.Connections != null)
+            {
+                foreach (var cDto in dto.Connections)
+                {
+                    diagram.Connections.Add(new DiagramConnectionModel
+                    {
+                        ConnectionID = string.IsNullOrEmpty(cDto.ConnectionID) ? Guid.NewGuid().ToString() : cDto.ConnectionID,
+                        DiagramID = diagram.DiagramID,
+                        SourceItemID = cDto.SourceItemID,
+                        SourceItemKind = cDto.SourceItemKind,
+                        DestinationItemID = cDto.DestinationItemID,
+                        DestinationItemKind = cDto.DestinationItemKind,
+                        ConnectionType = cDto.ConnectionType,
+                        Detail = cDto.Detail != null ? new DiagramConnectionDetailModel
+                        {
+                            ConnectionRouteType = cDto.Detail.ConnectionRouteType,
+                            SourceJunctionPointID = cDto.Detail.SourceJunctionPointID,
+                            DestinationJunctionPointID = cDto.Detail.DestinationJunctionPointID,
+                            LineType = cDto.Detail.LineType,
+                            LineColor = cDto.Detail.LineColor,
+                            LineWidth = cDto.Detail.LineWidth,
+                            ThicknessName = cDto.Detail.ThicknessName,
+                            SourceJunctionText = cDto.Detail.SourceJunctionText,
+                            DestinationJunctionText = cDto.Detail.DestinationJunctionText,
+                            MiddleLineText = cDto.Detail.MiddleLineText,
+                            IsDirectional = cDto.Detail.IsDirectional
+                        } : new DiagramConnectionDetailModel()
                     });
                 }
             }
@@ -133,8 +175,44 @@ namespace Antitouch.Services
                     Color = s.Color,
                     StrokeColor = s.StrokeColor,
                     FillColor = s.FillColor,
-                    SvgIcon = s.SvgIcon
-                }).ToList() ?? new List<DiagramShapeDto>()
+                    SvgIcon = s.SvgIcon,
+                    Radius = s.Radius,
+                    ZOrder = s.ZOrder,
+                    FillType = s.FillType,
+                    LineType = s.LineType,
+                    LineWidth = s.LineWidth,
+                    HoverPaddingRadiusRatio = s.HoverPaddingRadiusRatio,
+                    HoverPaddingColor = s.HoverPaddingColor,
+                    ProtectionPaddingRadiusRatio = s.ProtectionPaddingRadiusRatio,
+                    ProtectionPaddingColor = s.ProtectionPaddingColor,
+                    ParentContainerID = s.ParentContainerID
+                }).ToList() ?? new List<DiagramShapeDto>(),
+                Connections = diagram.Connections?.Select(c => new ConnectionDto
+                {
+                    ConnectionID = c.ConnectionID,
+                    DiagramID = c.DiagramID,
+                    SourceItemID = c.SourceItemID,
+                    SourceItemKind = c.SourceItemKind,
+                    DestinationItemID = c.DestinationItemID,
+                    DestinationItemKind = c.DestinationItemKind,
+                    ConnectionType = c.ConnectionType,
+                    IsDeleted = c.IsDeleted,
+                    Detail = c.Detail != null ? new ConnectionDetailDto
+                    {
+                        ConnectionDetailID = c.Detail.ConnectionDetailID,
+                        ConnectionRouteType = c.Detail.ConnectionRouteType,
+                        SourceJunctionPointID = c.Detail.SourceJunctionPointID,
+                        DestinationJunctionPointID = c.Detail.DestinationJunctionPointID,
+                        LineType = c.Detail.LineType,
+                        LineColor = c.Detail.LineColor,
+                        LineWidth = c.Detail.LineWidth,
+                        ThicknessName = c.Detail.ThicknessName,
+                        SourceJunctionText = c.Detail.SourceJunctionText,
+                        DestinationJunctionText = c.Detail.DestinationJunctionText,
+                        MiddleLineText = c.Detail.MiddleLineText,
+                        IsDirectional = c.Detail.IsDirectional
+                    } : new ConnectionDetailDto()
+                }).ToList() ?? new List<ConnectionDto>()
             };
         }
 

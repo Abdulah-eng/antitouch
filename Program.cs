@@ -29,6 +29,9 @@ builder.Services.AddScoped<IDiagramCanvasRepository,   DiagramCanvasRepository>(
 builder.Services.AddScoped<IDiagramCanvasService,       DiagramCanvasService>();
 // M3: Shape hierarchy validation rules
 builder.Services.AddScoped<IShapeHierarchyRepository,  ShapeHierarchyRepository>();
+// M7: Connection routing and lookups
+builder.Services.AddScoped<Antitouch.Models.ConnectionRepository>();
+builder.Services.AddScoped<Antitouch.Models.ConnectionService>();
 
 // CORS for local development
 builder.Services.AddCors(options =>
