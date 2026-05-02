@@ -12,10 +12,11 @@ const HierarchyLoader = (() => {
   async function load() {
     try {
       console.log('[HierarchyLoader] Fetching Diagram Child Parent.csv...');
-      const response = await fetch('/Diagram Child Parent.csv');
+      const response = await fetch('Diagram%20Child%20Parent.csv?t=' + Date.now());
       
       if (!response.ok) {
         console.warn(`[HierarchyLoader] Could not load CSV: ${response.statusText}`);
+        alert('Warning: Could not load Diagram Child Parent.csv! Shape hierarchy rules may not be enforced. Please ensure the file exists in the correct location.');
         return false;
       }
 
