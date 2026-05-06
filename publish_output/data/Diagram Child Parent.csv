@@ -1,0 +1,5 @@
+﻿Child,Parent
+AWS Region,Null
+AWS VPC,AWS Region
+AWS Availability Zone,AWS VPC
+AWS Route table,AWS Availability Zone OR AWS VPC
