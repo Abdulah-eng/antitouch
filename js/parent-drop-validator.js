@@ -54,9 +54,11 @@ const ParentDropValidator = (() => {
 
     const requiredTypes = Array.isArray(parentType) ? parentType : [parentType];
 
-    // Find shapes of the required parent type that contain the drop point
+    // Find shapes of the required parent type that contain the drop point.
+    // Also exclude same-type shapes to prevent e.g. VPC inside VPC.
     const validParents = shapes.filter(s => {
       if (!requiredTypes.includes(s.Type)) return false;
+      if (s.Type === itemDef.type) return false; // a shape cannot parent itself
       return _pointInsideShape(worldX, worldY, s);
     });
 
