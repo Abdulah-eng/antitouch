@@ -113,6 +113,26 @@ const DropHandler = (() => {
     }
 
     CanvasState.addShape(newShape);
+
+    // Record which parent container this shape was dropped into (for delete guard)
+    if (itemDef && itemDef.parentType && typeof ParentDropValidator !== 'undefined') {
+      const existingShapes = CanvasState.getShapes();
+      const requiredTypes = Array.isArray(itemDef.parentType) ? itemDef.parentType : [itemDef.parentType];
+      const parentShape = existingShapes.find(s => {
+        if (!requiredTypes.includes(s.Type)) return false;
+        if (s.Type === newShape.Type) return false;
+        const hw = s.Width / 2;
+        const hh = s.Height / 2;
+        return (
+          worldPos.x >= s.WorldX - hw && worldPos.x <= s.WorldX + hw &&
+          worldPos.y >= s.WorldY - hh && worldPos.y <= s.WorldY + hh
+        );
+      });
+      if (parentShape) {
+        newShape.ParentContainerID = parentShape.ShapeID;
+        console.log(`[DropHandler] Linked ${newShape.Label} (${newShape.ShapeID}) -> parent ${parentShape.Label} (${parentShape.ShapeID})`);
+      }
+    }
     if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
     if (typeof DirtyTracker   !== 'undefined') DirtyTracker.markDirty();
     RenderCanvas.render();

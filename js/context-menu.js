@@ -111,30 +111,39 @@ const ContextMenuController = (() => {
         const allShapes = CanvasState.getShapes();
         const shapeToDelete = allShapes.find(s => s.ShapeID === _lastTargetShapeId);
         
-        if (shapeToDelete && typeof ShapeCategories !== 'undefined') {
-          const hasChild = allShapes.some(child => {
-            if (child.ShapeID === shapeToDelete.ShapeID) return false;
-            
-            const childDef = ShapeCategories.getItemByType(child.Type);
-            if (!childDef || !childDef.parentType) return false;
-            
-            const allowedParents = Array.isArray(childDef.parentType) ? childDef.parentType : [childDef.parentType];
-            if (!allowedParents.includes(shapeToDelete.Type)) return false;
-            
-            // Check containment
+        if (shapeToDelete) {
+          // Primary check: any shape that has this shape recorded as its ParentContainerID
+          const hasNamedChild = allShapes.some(child => {
+            return child.ShapeID !== shapeToDelete.ShapeID &&
+                   child.ParentContainerID === shapeToDelete.ShapeID;
+          });
+
+          // Fallback: geometric containment — any shape whose centre is inside this shape's bounds
+          // and that has a required parent type (i.e. not a root-level shape)
+          let hasGeometricChild = false;
+          if (!hasNamedChild && typeof ShapeCategories !== 'undefined') {
             const hw = shapeToDelete.Width / 2;
             const hh = shapeToDelete.Height / 2;
-            const inside = (
-              child.WorldX >= shapeToDelete.WorldX - hw && child.WorldX <= shapeToDelete.WorldX + hw &&
-              child.WorldY >= shapeToDelete.WorldY - hh && child.WorldY <= shapeToDelete.WorldY + hh
-            );
-            return inside;
-          });
-          
-          if (hasChild) {
-            const def = ShapeCategories.getItemByType(shapeToDelete.Type);
+            hasGeometricChild = allShapes.some(child => {
+              if (child.ShapeID === shapeToDelete.ShapeID) return false;
+              const childDef = ShapeCategories.getItemByType(child.Type);
+              // Only block if the child requires a parent (not root-level shapes)
+              if (!childDef || childDef.parentType === null || childDef.parentType === undefined) return false;
+              return (
+                child.WorldX >= shapeToDelete.WorldX - hw &&
+                child.WorldX <= shapeToDelete.WorldX + hw &&
+                child.WorldY >= shapeToDelete.WorldY - hh &&
+                child.WorldY <= shapeToDelete.WorldY + hh
+              );
+            });
+          }
+
+          if (hasNamedChild || hasGeometricChild) {
+            const def = typeof ShapeCategories !== 'undefined'
+              ? ShapeCategories.getItemByType(shapeToDelete.Type)
+              : null;
             const label = def ? def.label : 'This shape';
-            alert(`Cannot delete ${label} because it contains child resources. Please remove them first.`);
+            alert(`Cannot delete "${label}" because it contains child resources. Please remove them first.`);
             return;
           }
         }

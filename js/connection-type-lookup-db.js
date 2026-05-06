@@ -20,6 +20,9 @@ const ConnectionTypeLookupDb = (() => {
     } catch (err) {
       console.warn('[ConnectionLookup] DB rules could not be loaded.', err);
       _dbRules = []; // Prevent infinite retries
+    }
+  }
+
   function _normalize(str) {
     if (!str) return '';
     return str.toLowerCase().replace(/[\s-]/g, '');
