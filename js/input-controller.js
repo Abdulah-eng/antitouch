@@ -118,9 +118,49 @@ const InputController = (() => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
        const selected = CanvasState.getSelectedId();
        if (selected) {
+         // ── Same child-containment guard as the context menu ──────────
+         const allShapes = CanvasState.getShapes();
+         const shapeToDelete = allShapes.find(s => s.ShapeID === selected);
+
+         if (shapeToDelete) {
+           // Primary: any shape whose ParentContainerID points to this shape
+           const hasNamedChild = allShapes.some(child =>
+             child.ShapeID !== shapeToDelete.ShapeID &&
+             child.ParentContainerID === shapeToDelete.ShapeID
+           );
+
+           // Fallback: any non-root shape geometrically inside this shape's bounds
+           let hasGeometricChild = false;
+           if (!hasNamedChild && typeof ShapeCategories !== 'undefined') {
+             const hw = shapeToDelete.Width / 2;
+             const hh = shapeToDelete.Height / 2;
+             hasGeometricChild = allShapes.some(child => {
+               if (child.ShapeID === shapeToDelete.ShapeID) return false;
+               const childDef = ShapeCategories.getItemByType(child.Type);
+               if (!childDef || childDef.parentType === null || childDef.parentType === undefined) return false;
+               return (
+                 child.WorldX >= shapeToDelete.WorldX - hw &&
+                 child.WorldX <= shapeToDelete.WorldX + hw &&
+                 child.WorldY >= shapeToDelete.WorldY - hh &&
+                 child.WorldY <= shapeToDelete.WorldY + hh
+               );
+             });
+           }
+
+           if (hasNamedChild || hasGeometricChild) {
+             const def = typeof ShapeCategories !== 'undefined'
+               ? ShapeCategories.getItemByType(shapeToDelete.Type)
+               : null;
+             const label = def ? def.label : 'This shape';
+             alert(`Cannot delete "${label}" because it contains child resources. Please remove them first.`);
+             return;
+           }
+         }
+
          CanvasState.removeShape(selected);
          CanvasState.selectShape(null);
          if (typeof HistoryManager !== 'undefined') HistoryManager.recordState();
+         if (typeof DirtyTracker !== 'undefined') DirtyTracker.markDirty();
          RenderCanvas.render();
        }
     }
